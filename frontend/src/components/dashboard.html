@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A7A5 Protocol Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #181824;
+    --border: #232336;
+    --accent: #e8c547;
+    --accent2: #4fd1a5;
+    --accent3: #e85447;
+    --text: #eeeef4;
+    --muted: #6b6b8a;
+    --glow: rgba(232,197,71,0.15);
+    --glow2: rgba(79,209,165,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,197,71,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,197,71,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-badge {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #000;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .logo span.dim { color: var(--muted); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 8px var(--accent2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .dot.red { background: var(--accent3); box-shadow: 0 0 8px var(--accent3); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .connect-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .connect-btn:hover { background: #f0d060; transform: translateY(-1px); }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 40px;
+    display: grid;
+    gap: 24px;
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(232,197,71,0.3); }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(232,197,71,0.3), transparent);
+  }
+
+  /* STATS GRID */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(232,197,71,0.4); transform: translateY(-2px); }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .stat-card:hover::after { opacity: 1; }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-value.green { color: var(--accent2); }
+  .stat-value.yellow { color: var(--accent); }
+  .stat-value.red { color: var(--accent3); }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* TWO COLUMN */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ROLE TAGS */
+  .roles-section { }
+
+  .role-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s;
+  }
+  .role-card:hover { border-color: rgba(232,197,71,0.3); }
+
+  .role-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .role-icon.owner { background: rgba(232,197,71,0.15); }
+  .role-icon.accountant { background: rgba(79,209,165,0.15); }
+  .role-icon.compliance { background: rgba(232,84,71,0.15); }
+
+  .role-info { flex: 1; }
+  .role-name {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 3px;
+  }
+  .role-desc {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .role-quorum {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(232,197,71,0.1);
+    border: 1px solid rgba(232,197,71,0.2);
+    border-radius: 6px;
+    padding: 4px 10px;
+  }
+
+  /* MECHANICS DIAGRAM */
+  .mechanics-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+  }
+
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 28px 0 16px;
+    flex-wrap: wrap;
+  }
+
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 120px;
+    transition: all 0.3s;
+    cursor: default;
+    position: relative;
+  }
+  .flow-node:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--glow);
+    transform: scale(1.05);
+    z-index: 2;
+  }
+  .flow-node .node-icon { font-size: 24px; margin-bottom: 8px; }
+  .flow-node .node-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .flow-node .node-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .flow-node.highlight {
+    border-color: rgba(232,197,71,0.5);
+    background: rgba(232,197,71,0.07);
+  }
+  .flow-node.highlight .node-name { color: var(--accent); }
+
+  .flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 12px;
+    position: relative;
+  }
+
+  .arrow-line {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--border), var(--accent), var(--border));
+    position: relative;
+  }
+  .arrow-line::after {
+    content: '▶';
+    position: absolute;
+    right: -6px;
+    top: -7px;
+    color: var(--accent);
+    font-size: 10px;
+  }
+
+  .arrow-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+
+  /* REBASE VISUALIZER */
+  .rebase-viz {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+
+  .rebase-bar-container {
+    margin: 12px 0;
+  }
+  .rebase-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .rebase-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .rebase-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .rebase-fill.shares { background: var(--accent); width: 72%; }
+  .rebase-fill.liquidity { background: var(--accent2); width: 88%; }
+
+  /* ACTIONS */
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .action-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .action-panel h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-panel .desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    font-family: 'Space Mono', monospace;
+    line-height: 1.5;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .inp {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .inp:focus { border-color: var(--accent); }
+  .inp::placeholder { color: var(--muted); }
+
+  .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover { background: #f0d060; transform: translateY(-1px); }
+
+  .btn-success {
+    background: var(--accent2);
+    color: #000;
+  }
+  .btn-success:hover { background: #6de4b8; }
+
+  .btn-danger {
+    background: var(--accent3);
+    color: #fff;
+  }
+  .btn-danger:hover { background: #f06458; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .btn-outline:hover { background: rgba(232,197,71,0.1); }
+
+  .btn-sm {
+    padding: 7px 14px;
+    font-size: 12px;
+  }
+
+  .exchange-result {
+    background: rgba(232,197,71,0.08);
+    border: 1px solid rgba(232,197,71,0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 8px;
+    display: none;
+  }
+  .exchange-result.visible { display: block; }
+
+  /* BLACKLIST */
+  .blacklist-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .blacklist-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .blacklist-table td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(35,35,54,0.5);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    vertical-align: middle;
+  }
+  .blacklist-table tr:last-child td { border-bottom: none; }
+  .blacklist-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .addr {
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+  }
+  .addr span {
+    color: var(--text);
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .badge-danger { background: rgba(232,84,71,0.15); color: var(--accent3); border: 1px solid rgba(232,84,71,0.3); }
+  .badge-success { background: rgba(79,209,165,0.12); color: var(--accent2); border: 1px solid rgba(79,209,165,0.25); }
+  .badge-warn { background: rgba(232,197,71,0.12); color: var(--accent); border: 1px solid rgba(232,197,71,0.25); }
+
+  /* EVENTS */
+  .events-list { }
+
+  .event-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(35,35,54,0.6);
+    animation: fadeIn 0.3s ease;
+    transition: background 0.15s;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 4px;
+  }
+  .event-item:hover { background: rgba(255,255,255,0.02); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .event-icon {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .event-icon.transfer { background: rgba(79,209,165,0.12); }
+  .event-icon.issue { background: rgba(232,197,71,0.12); }
+  .event-icon.burn { background: rgba(232,84,71,0.12); }
+  .event-icon.rebase { background: rgba(130,100,232,0.12); }
+  .event-icon.blacklist { background: rgba(232,84,71,0.15); }
+  .event-icon.pause { background: rgba(232,197,71,0.12); }
+  .event-icon.wrap { background: rgba(100,180,232,0.12); }
+
+  .event-body { flex: 1; }
+  .event-type {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 3px;
+  }
+  .event-detail {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .event-detail .highlight { color: var(--accent); }
+  .event-detail .highlight2 { color: var(--accent2); }
+
+  .event-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  /* WRAP/UNWRAP */
+  .wrap-toggle {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+
+  .wrap-tab {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 13px;
+    transition: all 0.2s;
+    color: var(--muted);
+  }
+  .wrap-tab.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  /* INTEREST CHART */
+  .chart-container {
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 10px 0 0;
+  }
+
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .chart-bar {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    background: linear-gradient(180deg, var(--accent2), rgba(79,209,165,0.4));
+    transition: height 0.5s ease;
+    min-height: 4px;
+  }
+
+  .chart-bar:hover { background: linear-gradient(180deg, #8ef5d4, var(--accent2)); }
+
+  .chart-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* YIELD CALCULATOR */
+  .yield-calc {
+    background: rgba(79,209,165,0.05);
+    border: 1px solid rgba(79,209,165,0.15);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+
+  .yield-result {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    color: var(--accent2);
+    font-weight: 700;
+    margin: 12px 0 4px;
+  }
+
+  .yield-desc {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* PAUSE BANNER */
+  .pause-banner {
+    background: rgba(232,197,71,0.08);
+    border: 1px solid rgba(232,197,71,0.3);
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .tab {
+    padding: 10px 20px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* TOOLTIP */
+  [data-tip] {
+    position: relative;
+    cursor: help;
+  }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  /* INFO BOX */
+  .info-box {
+    background: rgba(79,209,165,0.06);
+    border: 1px solid rgba(79,209,165,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-top: 12px;
+  }
+  .info-box strong { color: var(--accent2); }
+
+  /* RESPONSIVE HELPERS */
+  .mt16 { margin-top: 16px; }
+  .mb16 { margin-bottom: 16px; }
+  .flex { display: flex; }
+  .gap8 { gap: 8px; }
+  .flex-1 { flex: 1; }
+
+  /* Admin section */
+  .admin-warning {
+    background: rgba(232,84,71,0.08);
+    border: 1px solid rgba(232,84,71,0.25);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* contract address display */
+  .contract-addr {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .contract-addr button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .contract-addr button:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-badge">A7</div>
+      A7A5 <span class="dim">/ Protocol Dashboard</span>
+    </div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="dot"></div>
+        Protocol Active
+      </div>
+      <div class="status-pill" id="pauseStatus">
+        <div class="dot"></div>
+        <span>Not Paused</span>
+      </div>
+      <button class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- OVERVIEW STATS -->
+    <div>
+      <div class="section-title">Protocol Overview</div>
+      <div class="stats-grid">
+        <div class="stat-card" data-tip="Total fiat-backed liquidity in circulation">
+          <div class="stat-label">Total Liquidity</div>
+          <div class="stat-value yellow" id="totalLiquidity">14,872,440</div>
+          <div class="stat-sub">A7A5 tokens (≈ ₽)</div>
+        </div>
+        <div class="stat-card" data-tip="Internal share units, not equal to token balance">
+          <div class="stat-label">Total Shares</div>
+          <div class="stat-value" id="totalShares">14,204,118</div>
+          <div class="stat-sub">scaled units</div>
+        </div>
+        <div class="stat-card" data-tip="Current annual yield rate (CBR key rate − 1%)">
+          <div class="stat-label">Yield APR</div>
+          <div class="stat-value green">14.5%</div>
+          <div class="stat-sub">CBR 15.5% − 1%</div>
+        </div>
+        <div class="stat-card" data-tip="Transfer fee in basis points (1 bp = 0.01%)">
+          <div class="stat-label">Transfer Fee</div>
+          <div class="stat-value" id="basisPoints">0</div>
+          <div class="stat-sub">basis points (max 20)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div>
+      <div class="section-title">How the Protocol Works</div>
+      <div class="mechanics-card">
+        <p style="font-size:13px; color:var(--muted); font-family:'Space Mono',monospace; line-height:1.7; max-width:780px;">
+          A7A5 is a <strong style="color:var(--accent)">ruble-pegged rebase stablecoin</strong> (1 A7A5 = 1 ₽). Fiat deposits earn overnight interest in Russian banks, 
+          and that yield is automatically distributed to all token holders daily via <code style="color:var(--accent2)">distributeInterest()</code> — no staking or claiming required.
+        </p>
+
+        <div class="flow-diagram">
+          <div class="flow-node">
+            <div class="node-icon">🏦</div>
+            <div class="node-name">Bank Deposit</div>
+            <div class="node-sub">₽ collateral</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="arrow-line"></div>
+            <div class="arrow-label">issue()</div>
+          </div>
+          <div class="flow-node highlight">
+            <div class="node-icon">🪙</div>
+            <div class="node-name">A7A5</div>
+            <div class="node-sub">rebase token</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="arrow-line"></div>
+            <div class="arrow-label">wrap()</div>
+          </div>
+          <div class="flow-node">
+            <div class="node-icon">🎁</div>
+            <div class="node-name">wA7A5</div>
+            <div class="node-sub">DeFi-compatible</div>
+          </div>
+          <div class="flow-arrow">
+            <div class="arrow-line"></div>
+            <div class="arrow-label">overnight APR</div>
+          </div>
+          <div class="flow-node">
+            <div class="node-icon">📈</div>
+            <div class="node-name">distributeInterest</div>
+            <div class="node-sub">balance grows daily</div>
+          </div>
+        </div>
+
+        <div class="rebase-viz">
+          <div style="font-size:13px; font-weight:700; margin-bottom:16px;">Shares vs Liquidity — The Rebase Mechanic</div>
+          <div class="rebase-bar-container">
+            <div class="rebase-bar-label">
+              <span>_totalSupply (shares)</span>
+              <span style="color:var(--accent)" id="sharesNum">14,204,118</span>
+            </div>
+            <div class="rebase-bar"><div class="rebase-fill shares"></div></div>
+          </div>
+          <div class="rebase-bar-container">
+            <div class="rebase-bar-label">
+              <span>_totalLiquidity (token balance)</span>
+              <span style="color:var(--accent2)" id="liquidityNum">14,872,440</span>
+            </div>
+            <div class="rebase-bar"><div class="rebase-fill liquidity"></div></div>
+          </div>
+          <div style="margin-top:12px; font-family:'Space Mono',monospace; font-size:11px; color:var(--muted); line-height:1.8;">
+            <strong style="color:var(--text)">getScaledAmount(amount)</strong> = amount × totalShares / totalLiquidity<br>
+            <strong style="color:var(--text)">getLiquidityAmount(shares)</strong> = shares × totalLiquidity / totalShares<br>
+            <span style="color:var(--accent2)">→ As distributeInterest() increases _totalLiquidity, every holder's balance (in ₽) grows automatically.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES & DAILY YIELD -->
+    <div class="two-col">
+      <!-- ROLES -->
+      <div>
+        <div class="section-title">Roles & Access Control</div>
+        <div class="card">
+          <div class="role-card">
+            <div class="role-icon owner">👑</div>
+            <div class="role-info">
+              <div class="role-name">Owner</div>
+              <div class="role-desc">issue · burn · pause · unpause · updateBasisPointsRate</div>
+            </div>
+            <div class="role-quorum">3/5 quorum</div>
+          </div>
+          <div class="role-card">
+            <div class="role-icon accountant">📊</div>
+            <div class="role-info">
+              <div class="role-name">Accountant</div>
+              <div class="role-desc">distributeInterest — updates _totalLiquidity daily</div>
+            </div>
+            <div class="role-quorum">3/5 quorum</div>
+          </div>
+          <div class="role-card">
+            <div class="role-icon compliance">🛡️</div>
+            <div class="role-info">
+              <div class="role-name">Compliance</div>
+              <div class="role-desc">addBlacklist · removeBlacklist · destroyBlackFunds</div>
+            </div>
+            <div class="role-quorum">5/5 quorum</div>
+          </div>
+
+          <div class="info-box">
+            <strong>Note on totalSupply():</strong> In this Ethereum contract, <code>totalSupply()</code> returns <code>_totalLiquidity</code> (token-denominated), while <code>totalShares()</code> returns the raw internal share units. This differs from the Tron version.
+          </div>
+        </div>
+      </div>
+
+      <!-- YIELD CALCULATOR -->
+      <div>
+        <div class="section-title">Yield Calculator</div>
+        <div class="card">
+          <div style="font-size:13px; color:var(--muted); font-family:'Space Mono',monospace; margin-bottom:16px; line-height:1.6;">
+            A7A5 earns yield automatically — just hold the token. No staking or claiming needed.
+          </div>
+
+          <div class="input-row">
+            <input class="inp" type="number" id="yieldAmount" placeholder="Your A7A5 amount" value="100000" oninput="calcYield()">
+          </div>
+          <div class="input-row">
+            <input class="inp" type="number" id="yieldRate" placeholder="APR %" value="14.5" oninput="calcYield()">
+            <input class="inp" type="number" id="yieldDays" placeholder="Days" value="365" oninput="calcYield()" style="max-width:100px;">
+          </div>
+
+          <div class="yield-calc">
+            <div style="font-size:12px; color:var(--muted); font-family:'Space Mono',monospace;">Estimated yield</div>
+            <div class="yield-result" id="yieldResult">14,500 A7A5</div>
+            <div class="yield-desc" id="yieldDesc">≈ ₽14,500 · 14.5% for 365 days</div>
+          </div>
+
+          <div class="info-box" style="margin-top:12px;">
+            <strong>Interest chart — last 7 distributions</strong>
+            <div class="chart-container" id="interestChart">
+              <!-- bars rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WRAP / UNWRAP + USER ACTIONS -->
+    <div class="two-col">
+      <!-- WRAP/UNWRAP -->
+      <div>
+        <div class="section-title">Wrap / Unwrap (wA7A5)</div>
+        <div class="card">
+          <div class="wrap-toggle">
+            <div class="wrap-tab active" id="wrapTab" onclick="setWrapMode('wrap')">🎁 Wrap A7A5 → wA7A5</div>
+            <div class="wrap-tab" id="unwrapTab" onclick="setWrapMode('unwrap')">🔓 Unwrap wA7A5 → A7A5</div>
+          </div>
+
+          <div id="wrapPanel">
+            <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:14px;line-height:1.6;">
+              Lock A7A5 into the wrapper contract. Yield accrues inside the contract — unwrap later to receive principal + accumulated income.
+            </div>
+            <div class="input-row">
+              <input class="inp" id="wrapAmount" type="number" placeholder="A7A5 amount to wrap" oninput="calcWrap()">
+              <button class="btn btn-primary" onclick="doWrap()">Wrap</button>
+            </div>
+            <div class="exchange-result" id="wrapResult">
+              → You receive: <span id="wrapOutput">0</span> wA7A5
+            </div>
+          </div>
+
+          <div id="unwrapPanel" style="display:none;">
+            <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:14px;line-height:1.6;">
+              Burn wA7A5 and receive A7A5 back — including all yield that accumulated while wrapped.
+            </div>
+            <div class="input-row">
+              <input class="inp" id="unwrapAmount" type="number" placeholder="wA7A5 amount to unwrap" oninput="calcUnwrap()">
+              <button class="btn btn-success" onclick="doUnwrap()">Unwrap</button>
+            </div>
+            <div class="exchange-result" id="unwrapResult">
+              → You receive: <span id="unwrapOutput">0</span> A7A5
+            </div>
+          </div>
+
+          <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+              <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">1 wA7A5 =</div>
+              <div style="font-family:'Space Mono',monospace;font-size:18px;color:var(--accent);" id="wA7A5Rate">1.047</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;">A7A5</div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+              <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">1 A7A5 =</div>
+              <div style="font-family:'Space Mono',monospace;font-size:18px;color:var(--accent2);" id="A7A5Rate">0.955</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;">wA7A5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSFER -->
+      <div>
+        <div class="section-title">Token Actions</div>
+        <div class="card">
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this,'transfer')">Transfer</div>
+            <div class="tab" onclick="switchTab(this,'approve')">Approve</div>
+            <div class="tab" onclick="switchTab(this,'query')">Query</div>
+          </div>
+
+          <div class="tab-content active" id="tab-transfer">
+            <div class="action-panel" style="background:transparent;border:none;padding:0;">
+              <div class="desc">Send A7A5 tokens. A fee (basisPointsRate) is deducted and sent to Owner if set.</div>
+              <div class="input-row">
+                <input class="inp" placeholder="Recipient address (0x...)" id="transferTo">
+              </div>
+              <div class="input-row">
+                <input class="inp" placeholder="Amount (A7A5)" type="number" id="transferAmt">
+                <button class="btn btn-primary" onclick="doTransfer()">Send</button>
+              </div>
+              <div class="info-box">
+                <strong>Fee logic:</strong> scaledAmount = getScaledAmount(value)<br>
+                fee = scaledAmount × basisPointsRate / 10000<br>
+                recipient gets: getLiquidityAmount(scaledAmount − fee)
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-approve">
+            <div class="desc" style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:14px;">
+              Approve a spender (e.g. the wA7A5 contract) to spend your tokens via transferFrom.
+            </div>
+            <div class="input-row">
+              <input class="inp" placeholder="Spender address (0x...)" id="approveSpender">
+            </div>
+            <div class="input-row">
+              <input class="inp" placeholder="Amount (A7A5) — use 2^256-1 for unlimited" type="number" id="approveAmt">
+              <button class="btn btn-outline" onclick="doApprove()">Approve</button>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-query">
+            <div class="desc" style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:14px;">
+              Read balances, shares, and allowances from the contract.
+            </div>
+            <div class="input-row">
+              <input class="inp" placeholder="Address (0x...)" id="queryAddr">
+              <button class="btn btn-outline btn-sm" onclick="doQuery()">Query</button>
+            </div>
+            <div id="queryResult" style="display:none;margin-top:12px;">
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+                <div style="font-family:'Space Mono',monospace;font-size:11px;line-height:2;">
+                  <span style="color:var(--muted);">balanceOf:</span> <span style="color:var(--accent)" id="qBalance">—</span><br>
+                  <span style="color:var(--muted);">sharesOf:</span> <span style="color:var(--accent2)" id="qShares">—</span><br>
+                  <span style="color:var(--muted);">blacklisted:</span> <span id="qBlacklisted">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLACKLIST + EVENTS -->
+    <div class="two-col">
+      <!-- BLACKLIST -->
+      <div>
+        <div class="section-title">Blacklist (Compliance)</div>
+        <div class="card">
+          <div class="admin-warning">
+            ⚠️ Compliance functions require 5/5 multisig quorum
+          </div>
+
+          <div class="input-row mb16">
+            <input class="inp" placeholder="Address to check / manage" id="blAddr">
+            <button class="btn btn-outline btn-sm" onclick="checkBlacklist()">Check</button>
+          </div>
+
+          <div id="blStatus" style="display:none;" class="exchange-result" style="margin-bottom:16px;"></div>
+
+          <div style="display:flex;gap:8px;margin-bottom:20px;">
+            <button class="btn btn-danger btn-sm flex-1" onclick="addToBlacklist()">Add to Blacklist</button>
+            <button class="btn btn-success btn-sm flex-1" onclick="removeFromBlacklist()">Remove</button>
+            <button class="btn btn-sm flex-1" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="destroyFunds()">Destroy Funds</button>
+          </div>
+
+          <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:10px;font-weight:600;">Blacklisted Addresses</div>
+          <table class="blacklist-table">
+            <thead>
+              <tr>
+                <th>Address</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="blacklistBody">
+              <tr>
+                <td><span class="addr"><span>0x1a2b...3c4d</span></span></td>
+                <td><span class="badge badge-danger">🔴 Frozen</span></td>
+                <td><button class="btn btn-sm" style="background:transparent;color:var(--accent2);border:1px solid var(--accent2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Remove</button></td>
+              </tr>
+              <tr>
+                <td><span class="addr"><span>0x9f8e...7d6c</span></span></td>
+                <td><span class="badge badge-danger">🔴 Frozen</span></td>
+                <td><button class="btn btn-sm" style="background:transparent;color:var(--accent2);border:1px solid var(--accent2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Remove</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- EVENTS FEED -->
+      <div>
+        <div class="section-title">Live Event Feed</div>
+        <div class="card" style="max-height:480px;overflow-y:auto;">
+          <div id="eventFeed" class="events-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div>
+      <div class="section-title">Admin Panel (Owner)</div>
+      <div class="card">
+        <div class="admin-warning">
+          ⚠️ Owner functions require 3/5 multisig quorum. Only connected wallet with owner role can execute.
+        </div>
+        <div class="three-col">
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:8px;">💰 Issue Tokens</div>
+            <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:12px;">Mint new A7A5 backed by fiat deposit</div>
+            <input class="inp mb16" placeholder="Recipient address" id="issueAddr" style="margin-bottom:8px;">
+            <div class="input-row">
+              <input class="inp" placeholder="Amount (A7A5)" type="number" id="issueAmt">
+              <button class="btn btn-primary btn-sm" onclick="doIssue()">Issue</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:8px;">🔥 Burn Tokens</div>
+            <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:12px;">Remove tokens from owner's balance</div>
+            <div class="input-row" style="margin-top:36px;">
+              <input class="inp" placeholder="Amount to burn" type="number" id="burnAmt">
+              <button class="btn btn-danger btn-sm" onclick="doBurn()">Burn</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:8px;">⚙️ Settings</div>
+            <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:12px;">Transfer fee (0–19 basis points)</div>
+            <div class="input-row" style="margin-top:36px;">
+              <input class="inp" placeholder="Basis points (0–19)" type="number" id="bpInput" max="19" min="0">
+              <button class="btn btn-outline btn-sm" onclick="doSetFee()">Set Fee</button>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <button class="btn btn-sm flex-1" style="background:rgba(232,197,71,0.1);color:var(--accent);border:1px solid var(--accent);" onclick="doPause()" id="pauseBtn">⏸ Pause</button>
+              <button class="btn btn-sm flex-1" style="background:rgba(79,209,165,0.1);color:var(--accent2);border:1px solid var(--accent2);" onclick="doUnpause()">▶ Unpause</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:20px;">
+          <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:8px;">📊 Distribute Interest (Accountant only)</div>
+          <div class="input-row" style="max-width:500px;">
+            <input class="inp" placeholder="Liquidity delta (positive = yield, negative = loss)" type="number" id="interestDelta">
+            <button class="btn btn-success btn-sm" onclick="doDistribute()">Distribute</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:6px;">
+            Positive value increases _totalLiquidity → all balances grow. Negative reduces it. Requires _totalLiquidity ≥ _totalSupply always.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTRACT ADDRESSES -->
+    <div>
+      <div class="section-title">Contract Addresses (Ethereum)</div>
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:8px;">A7A5 (ERC-20)</div>
+            <div class="contract-addr">
+              <span>0x6fA0BE17e4beA2fCfA22ef89BF8ac9aab0AB0fc9</span>
+              <button onclick="copyAddr(this,'0x6fA0BE17e4beA2fCfA22ef89BF8ac9aab0AB0fc9')">📋</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:8px;">wA7A5 (ERC-20)</div>
+            <div class="contract-addr">
+              <span>0xF442fF10b8deF89514560A66C0AD28777094636a</span>
+              <button onclick="copyAddr(this,'0xF442fF10b8deF89514560A66C0AD28777094636a')">📋</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ===== SIMULATED STATE =====
+let state = {
+  totalLiquidity: 14872440,
+  totalShares: 14204118,
+  basisPoints: 0,
+  paused: false,
+  wrappedRate: 1.047, // 1 wA7A5 = 1.047 A7A5
+  events: [],
+  blacklist: ['0x1a2b...3c4d', '0x9f8e...7d6c'],
+};
+
+const interestHistory = [120, 180, 155, 210, 190, 230, 245];
+const dayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// ===== INIT =====
+function init() {
+  renderEvents([
+    {type:'rebase', icon:'📈', label:'Interest Distributed', detail:'<span class="highlight">+245 A7A5</span> distributed to all holders · Δ liquidity +245', time:'2m ago'},
+    {type:'transfer', icon:'💸', label:'Transfer', detail:'<span class="highlight2">0x3f2a...d4e1</span> → <span class="highlight2">0x9bc3...a1f2</span> · <span class="highlight">500 A7A5</span>', time:'5m ago'},
+    {type:'wrap', icon:'🎁', label:'Wrap', detail:'<span class="highlight2">0x7d4c...b3e5</span> wrapped <span class="highlight">2,000 A7A5</span> → <span class="highlight2">1,910 wA7A5</span>', time:'12m ago'},
+    {type:'issue', icon:'🪙', label:'Issue', detail:'Owner issued <span class="highlight">50,000 A7A5</span> to <span class="highlight2">0x2e1f...c8d0</span>', time:'1h ago'},
+    {type:'blacklist', icon:'🚫', label:'Blacklisted', detail:'Compliance froze <span class="highlight2" style="color:var(--accent3)">0x9f8e...7d6c</span>', time:'3h ago'},
+    {type:'transfer', icon:'💸', label:'Transfer', detail:'<span class="highlight2">0x5a3b...e2f1</span> → <span class="highlight2">0x1c4d...8e7a</span> · <span class="highlight">1,200 A7A5</span>', time:'5h ago'},
+    {type:'rebase', icon:'📈', label:'Interest Distributed', detail:'<span class="highlight">+230 A7A5</span> distributed to all holders', time:'1d ago'},
+    {type:'burn', icon:'🔥', label:'Burn', detail:'Owner burned <span class="highlight">10,000 A7A5</span> from supply', time:'2d ago'},
+  ]);
+  renderChart();
+  calcYield();
+}
+
+function renderEvents(events) {
+  const feed = document.getElementById('eventFeed');
+  feed.innerHTML = events.map(e => `
+    <div class="event-item">
+      <div class="event-icon ${e.type}">${e.icon}</div>
+      <div class="event-body">
+        <div class="event-type">${e.label}</div>
+        <div class="event-detail">${e.detail}</div>
+      </div>
+      <div class="event-time">${e.time}</div>
+    </div>
+  `).join('');
+}
+
+function renderChart() {
+  const max = Math.max(...interestHistory);
+  const container = document.getElementById('interestChart');
+  container.innerHTML = interestHistory.map((v, i) => `
+    <div class="bar-col">
+      <div class="chart-bar" style="height:${(v/max)*80}px;" title="+${v} A7A5"></div>
+      <div class="chart-label">${dayLabels[i]}</div>
+    </div>
+  `).join('');
+}
+
+// ===== YIELD CALC =====
+function calcYield() {
+  const amount = parseFloat(document.getElementById('yieldAmount').value) || 0;
+  const rate = parseFloat(document.getElementById('yieldRate').value) || 0;
+  const days = parseInt(document.getElementById('yieldDays').value) || 0;
+  const result = amount * (rate / 100) * (days / 365);
+  document.getElementById('yieldResult').textContent = fmt(result) + ' A7A5';
+  document.getElementById('yieldDesc').textContent = `≈ ₽${fmt(result)} · ${rate}% for ${days} days`;
+}
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('en');
+}
+
+// ===== WRAP/UNWRAP =====
+function setWrapMode(mode) {
+  const isWrap = mode === 'wrap';
+  document.getElementById('wrapTab').classList.toggle('active', isWrap);
+  document.getElementById('unwrapTab').classList.toggle('active', !isWrap);
+  document.getElementById('wrapPanel').style.display = isWrap ? 'block' : 'none';
+  document.getElementById('unwrapPanel').style.display = isWrap ? 'none' : 'block';
+}
+
+function calcWrap() {
+  const amt = parseFloat(document.getElementById('wrapAmount').value);
+  if (!amt) return;
+  // wA7A5Amount = getScaledAmount(A7A5Amount) ≈ A7A5 * (totalShares / totalLiquidity)
+  const wAmt = amt * (state.totalShares / state.totalLiquidity);
+  document.getElementById('wrapOutput').textContent = wAmt.toFixed(4) + ' wA7A5';
+  document.getElementById('wrapResult').classList.add('visible');
+}
+
+function calcUnwrap() {
+  const amt = parseFloat(document.getElementById('unwrapAmount').value);
+  if (!amt) return;
+  // A7A5Amount = getLiquidityAmount(wA7A5Amount) ≈ wA7A5 * (totalLiquidity / totalShares)
+  const a7a5 = amt * (state.totalLiquidity / state.totalShares);
+  document.getElementById('unwrapOutput').textContent = a7a5.toFixed(4) + ' A7A5';
+  document.getElementById('unwrapResult').classList.add('visible');
+}
+
+function doWrap() {
+  const amt = parseFloat(document.getElementById('wrapAmount').value);
+  if (!amt) return alert('Enter an amount');
+  addEvent({type:'wrap', icon:'🎁', label:'Wrap', detail:`Wrapped <span class="highlight">${fmt(amt)} A7A5</span> → wA7A5`, time:'just now'});
+  showToast('✅ Wrapped successfully (simulated)');
+}
+
+function doUnwrap() {
+  const amt = parseFloat(document.getElementById('unwrapAmount').value);
+  if (!amt) return alert('Enter an amount');
+  addEvent({type:'wrap', icon:'🔓', label:'Unwrap', detail:`Unwrapped <span class="highlight">${fmt(amt)} wA7A5</span> → A7A5`, time:'just now'});
+  showToast('✅ Unwrapped successfully (simulated)');
+}
+
+// ===== TABS =====
+function switchTab(el, id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ===== TRANSFER =====
+function doTransfer() {
+  const to = document.getElementById('transferTo').value;
+  const amt = parseFloat(document.getElementById('transferAmt').value);
+  if (!to || !amt) return alert('Fill in all fields');
+  const fee = Math.round(amt * state.basisPoints / 10000);
+  addEvent({type:'transfer', icon:'💸', label:'Transfer', detail:`→ <span class="highlight2">${to.slice(0,10)}...</span> · <span class="highlight">${fmt(amt)} A7A5</span>${fee > 0 ? ` (fee: ${fee})` : ''}`, time:'just now'});
+  showToast('✅ Transfer simulated');
+}
+
+function doApprove() {
+  const sp = document.getElementById('approveSpender').value;
+  const amt = parseFloat(document.getElementById('approveAmt').value);
+  if (!sp) return alert('Enter spender address');
+  addEvent({type:'transfer', icon:'✅', label:'Approval', detail:`Approved <span class="highlight2">${sp.slice(0,10)}...</span> to spend <span class="highlight">${fmt(amt)} A7A5</span>`, time:'just now'});
+  showToast('✅ Approval simulated');
+}
+
+function doQuery() {
+  const addr = document.getElementById('queryAddr').value;
+  if (!addr) return alert('Enter address');
+  const balance = Math.round(Math.random() * 100000);
+  const shares = Math.round(balance * (state.totalShares / state.totalLiquidity));
+  const bl = state.blacklist.some(a => a.startsWith(addr.slice(0,6)));
+  document.getElementById('qBalance').textContent = fmt(balance) + ' A7A5';
+  document.getElementById('qShares').textContent = fmt(shares) + ' shares';
+  const blEl = document.getElementById('qBlacklisted');
+  blEl.innerHTML = bl ? '<span class="badge badge-danger">🔴 Yes</span>' : '<span class="badge badge-success">🟢 No</span>';
+  document.getElementById('queryResult').style.display = 'block';
+}
+
+// ===== BLACKLIST =====
+function checkBlacklist() {
+  const addr = document.getElementById('blAddr').value;
+  if (!addr) return alert('Enter address');
+  const bl = state.blacklist.some(a => a.startsWith(addr.slice(0,6)));
+  const el = document.getElementById('blStatus');
+  el.style.display = 'block';
+  el.style.background = bl ? 'rgba(232,84,71,0.1)' : 'rgba(79,209,165,0.1)';
+  el.style.color = bl ? 'var(--accent3)' : 'var(--accent2)';
+  el.style.border = bl ? '1px solid rgba(232,84,71,0.3)' : '1px solid rgba(79,209,165,0.3)';
+  el.textContent = bl ? '🔴 Address is BLACKLISTED' : '🟢 Address is not blacklisted';
+}
+
+function addToBlacklist() {
+  const addr = document.getElementById('blAddr').value;
+  if (!addr) return alert('Enter address');
+  const short = addr.slice(0,6) + '...' + addr.slice(-4);
+  addEvent({type:'blacklist', icon:'🚫', label:'Blacklisted', detail:`Compliance froze <span style="color:var(--accent3)">${short}</span>`, time:'just now'});
+  appendBlacklistRow(short);
+  showToast('⛔ Address blacklisted (simulated)');
+}
+
+function removeFromBlacklist() {
+  const addr = document.getElementById('blAddr').value;
+  if (!addr) return alert('Enter address');
+  addEvent({type:'transfer', icon:'✅', label:'Removed from Blacklist', detail:`Compliance cleared <span class="highlight2">${addr.slice(0,10)}...</span>`, time:'just now'});
+  showToast('✅ Removed from blacklist (simulated)');
+}
+
+function destroyFunds() {
+  const addr = document.getElementById('blAddr').value;
+  if (!addr) return alert('Enter address');
+  addEvent({type:'burn', icon:'💣', label:'Destroyed Black Funds', detail:`Compliance destroyed shares of <span style="color:var(--accent3)">${addr.slice(0,10)}...</span>`, time:'just now'});
+  showToast('🔥 Black funds destroyed (simulated)');
+}
+
+function appendBlacklistRow(addr) {
+  const tbody = document.getElementById('blacklistBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><span class="addr"><span>${addr}</span></span></td>
+    <td><span class="badge badge-danger">🔴 Frozen</span></td>
+    <td><button style="background:transparent;color:var(--accent2);border:1px solid var(--accent2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Remove</button></td>
+  `;
+  tbody.insertBefore(tr, tbody.firstChild);
+}
+
+// ===== ADMIN =====
+function doIssue() {
+  const addr = document.getElementById('issueAddr').value;
+  const amt = parseFloat(document.getElementById('issueAmt').value);
+  if (!addr || !amt) return alert('Fill in all fields');
+  state.totalLiquidity += amt;
+  state.totalShares += Math.round(amt * (state.totalShares / (state.totalLiquidity - amt)));
+  updateStats();
+  addEvent({type:'issue', icon:'🪙', label:'Issue', detail:`Owner issued <span class="highlight">${fmt(amt)} A7A5</span> to <span class="highlight2">${addr.slice(0,10)}...</span>`, time:'just now'});
+  showToast('✅ Tokens issued (simulated)');
+}
+
+function doBurn() {
+  const amt = parseFloat(document.getElementById('burnAmt').value);
+  if (!amt) return alert('Enter amount');
+  state.totalLiquidity = Math.max(0, state.totalLiquidity - amt);
+  updateStats();
+  addEvent({type:'burn', icon:'🔥', label:'Burn', detail:`Owner burned <span class="highlight">${fmt(amt)} A7A5</span>`, time:'just now'});
+  showToast('🔥 Tokens burned (simulated)');
+}
+
+function doSetFee() {
+  const bp = parseInt(document.getElementById('bpInput').value);
+  if (bp >= 20) return alert('Max 19 basis points');
+  state.basisPoints = bp;
+  document.getElementById('basisPoints').textContent = bp;
+  addEvent({type:'transfer', icon:'⚙️', label:'Fee Updated', detail:`Basis points rate set to <span class="highlight">${bp}</span>`, time:'just now'});
+  showToast(`✅ Fee set to ${bp} bp (simulated)`);
+}
+
+let protocolPaused = false;
+function doPause() {
+  protocolPaused = true;
+  document.getElementById('pauseStatus').innerHTML = '<div class="dot red"></div><span>Paused</span>';
+  addEvent({type:'pause', icon:'⏸', label:'Protocol Paused', detail:'Owner paused all transfers', time:'just now'});
+  showToast('⏸ Protocol paused (simulated)');
+}
+function doUnpause() {
+  protocolPaused = false;
+  document.getElementById('pauseStatus').innerHTML = '<div class="dot"></div><span>Not Paused</span>';
+  addEvent({type:'pause', icon:'▶', label:'Protocol Unpaused', detail:'Owner resumed transfers', time:'just now'});
+  showToast('▶ Protocol unpaused (simulated)');
+}
+
+function doDistribute() {
+  const delta = parseFloat(document.getElementById('interestDelta').value);
+  if (isNaN(delta)) return alert('Enter a delta');
+  const old = state.totalLiquidity;
+  state.totalLiquidity += delta;
+  if (state.totalLiquidity < state.totalShares) {
+    alert('Error: totalLiquidity cannot drop below totalShares');
+    state.totalLiquidity = old;
+    return;
+  }
+  updateStats();
+  const sign = delta >= 0 ? '+' : '';
+  addEvent({type:'rebase', icon:'📈', label:'Interest Distributed', detail:`<span class="highlight">${sign}${fmt(delta)} A7A5</span> → _totalLiquidity updated to ${fmt(state.totalLiquidity)}`, time:'just now'});
+  showToast(`✅ Interest distributed: ${sign}${fmt(delta)} A7A5 (simulated)`);
+}
+
+function updateStats() {
+  document.getElementById('totalLiquidity').textContent = fmt(state.totalLiquidity);
+  document.getElementById('totalShares').textContent = fmt(state.totalShares);
+  document.getElementById('sharesNum').textContent = fmt(state.totalShares);
+  document.getElementById('liquidityNum').textContent = fmt(state.totalLiquidity);
+}
+
+function addEvent(ev) {
+  const feed = document.getElementById('eventFeed');
+  const div = document.createElement('div');
+  div.className = `event-item ${ev.type}`;
+  div.innerHTML = `
+    <div class="event-icon ${ev.type}">${ev.icon}</div>
+    <div class="event-body">
+      <div class="event-type">${ev.label}</div>
+      <div class="event-detail">${ev.detail}</div>
+    </div>
+    <div class="event-time">${ev.time}</div>
+  `;
+  feed.insertBefore(div, feed.firstChild);
+}
+
+// ===== WALLET =====
+function connectWallet() {
+  showToast('🦊 Connect via MetaMask in production (simulation mode)');
+}
+
+// ===== COPY =====
+function copyAddr(btn, addr) {
+  navigator.clipboard.writeText(addr).then(() => {
+    btn.textContent = '✅';
+    setTimeout(() => btn.textContent = '📋', 2000);
+  });
+}
+
+// ===== TOAST =====
+let toastTimeout;
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.style.cssText = `position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 24px;font-family:'Space Mono',monospace;font-size:13px;color:var(--text);z-index:999;transition:opacity 0.3s;box-shadow:0 8px 40px rgba(0,0,0,0.5);`;
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.style.opacity = '0', 3000);
+}
+
+// Simulate live rate update
+setInterval(() => {
+  state.wrappedRate += (Math.random() - 0.48) * 0.0005;
+  document.getElementById('wA7A5Rate').textContent = state.wrappedRate.toFixed(4);
+  document.getElementById('A7A5Rate').textContent = (1 / state.wrappedRate).toFixed(4);
+}, 3000);
+
+init();
+</script>
+</body>
+</html>

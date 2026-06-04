@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #0a0a0f;
+  --color-surface: #111118;
+  --color-surface2: #181824;
+  --color-rim: #232336;
+  --color-accent: #e8c547;
+  --color-accent2: #4fd1a5;
+  --color-accent3: #e85447;
+  --color-ink: #eeeef4;
+  --color-muted: #6b6b8a;
+  --font-sans: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background dot grid — too complex for Tailwind utilities */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232, 197, 71, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232, 197, 71, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  /* Card top-edge glow line — hard to do with Tailwind before: prefix */
+  .card-glow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(232, 197, 71, 0.3), transparent);
+  }
+
+  /* Stat card bottom-edge accent bar */
+  .stat-glow::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #e8c547, transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .stat-glow:hover::after {
+    opacity: 1;
+  }
+
+  /* Arrow line in flow diagram */
+  .arrow-line::after {
+    content: '▶';
+    position: absolute;
+    right: -6px;
+    top: -7px;
+    color: #e8c547;
+    font-size: 10px;
+  }
+
+  /* Animated pulse dot */
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+  .dot-pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* Event feed item fade-in */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .fade-in {
+    animation: fadeIn 0.3s ease;
+  }
+}

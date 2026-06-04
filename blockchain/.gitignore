@@ -1,0 +1,11 @@
+LEGACY/
+node_modules
+.env
+.env.local
+
+# Hardhat build output
+artifacts
+cache
+types
+dist
+coverage

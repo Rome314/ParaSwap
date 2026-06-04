@@ -1,0 +1,45 @@
+{
+  "name": "para-swap-contracts",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "hardhat build",
+    "test": "hardhat test mocha",
+    "test:fork": "MAINNET_FORK=1 hardhat test mocha",
+    "format": "prettier --write \"**/*.{sol,ts,js}\"",
+    "format:check": "prettier --check \"**/*.{sol,ts,js}\""
+  },
+  "dependencies": {
+    "@openzeppelin/community-contracts": "github:OpenZeppelin/openzeppelin-community-contracts",
+    "@openzeppelin/contracts": "^5.6.1",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v3-core": "^1.0.1",
+    "@uniswap/v3-periphery": "^1.4.4",
+    "a7a5": "github:a7a5-defi/a7a5"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.0",
+    "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0",
+    "@nomicfoundation/hardhat-ignition": "^3.0.0",
+    "@nomicfoundation/hardhat-ignition-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-keystore": "^3.0.0",
+    "@nomicfoundation/hardhat-mocha": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-typechain": "^3.0.0",
+    "@nomicfoundation/hardhat-verify": "^3.0.0",
+    "@nomicfoundation/ignition-core": "^3.0.0",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "^20.14.10",
+    "chai": "^5.1.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.14.0",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.2",
+    "hardhat": "^3.4.0",
+    "mocha": "^11.0.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-solidity": "^2.3.1",
+    "typescript": "^5.6.2"
+  }
+}

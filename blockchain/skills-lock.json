@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "skills": {
+    "claude-code-usage": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/claude-code-usage/SKILL.md",
+      "computedHash": "fed4b6e44a47b2a09ba4512510848f80847e9533ada0f5ec525a2f7222908da3"
+    },
+    "defi-security": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/defi-security/SKILL.md",
+      "computedHash": "081772ad2f6a5e3cdaec48bed5f39e032073d3e49ea9cc5860710bcfc752638d"
+    },
+    "git-workflow": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/git-workflow/SKILL.md",
+      "computedHash": "648f9588268110272a04294cc2ac0876577616467685a91f7529c7700c0d91a2"
+    },
+    "solidity": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "solidity/SKILL.md",
+      "computedHash": "249269cdf9edf5b57fb305eb496cb833940e05cb0ebb366dd912ca5fd66f5f4c"
+    },
+    "solidity-audit": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-audit/SKILL.md",
+      "computedHash": "084cd90ab6eb27aee3694f80a32e5985210f3dabfb57600214fca7037346aebd"
+    },
+    "solidity-checklist": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-checklist/SKILL.md",
+      "computedHash": "21a39d25b366e9009738ec032745d80159da024b6bb8f2c64ec682f5a9c3c71d"
+    },
+    "solidity-coding": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-coding/SKILL.md",
+      "computedHash": "d5535ef3625cd5c13a7a48e2ecc0cdcbc9444936d02bafb77715ac7b15dcf3fc"
+    },
+    "solidity-debug": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-debug/SKILL.md",
+      "computedHash": "8897bd620551b8b77450756af03357142bb1f49dcbc9555386eff7e343e363a5"
+    },
+    "solidity-deploy": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-deploy/SKILL.md",
+      "computedHash": "7ef0f9020609155e49880612873fe16a8ac2a01f66f7510bc610c30e0a3f0472"
+    },
+    "solidity-security": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-security/SKILL.md",
+      "computedHash": "3e7ef0166137aa5811fe9c9a3ef58073a195904471762745125d4e3ad6b4d20a"
+    },
+    "solidity-testing": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-testing/SKILL.md",
+      "computedHash": "6e5533e02130541d19003a67c31a0b80decdae780e1700d41d455db8b22d42af"
+    },
+    "token-antiflash": {
+      "source": "0xlayerghost/solidity-agent-kit",
+      "sourceType": "github",
+      "skillPath": "skills/token-antiflash/SKILL.md",
+      "computedHash": "f99189529f6571ceed13872dfb6fcdbcbb399d1176dcf4fd97dc9ca0e9408cca"
+    }
+  }
+}

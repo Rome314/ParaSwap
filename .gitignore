@@ -1,0 +1,25 @@
+# Node
+node_modules/
+dist/
+*.log
+
+# Vite
+.vite/
+
+# Go
+backend/server
+*.test
+
+# Hardhat 3
+contracts/cache/
+contracts/artifacts/
+contracts/.hardhat/
+
+# Env
+.env
+.env.local
+
+.agents/
+.claude/
+.cursor/
+.skills-lock.json

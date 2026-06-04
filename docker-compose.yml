@@ -1,0 +1,20 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_CHAIN: ${VITE_CHAIN:-eth-sepolia}
+        VITE_ALCHEMY_API_KEY: ${VITE_ALCHEMY_API_KEY}
+        VITE_UNISWAP_ROUTING_API_URL: ${VITE_UNISWAP_ROUTING_API_URL:-https://api.uniswap.org/v2/quote}
+        VITE_UNISWAP_API_KEY: ${VITE_UNISWAP_API_KEY:-}
+        VITE_WALLETCONNECT_PROJECT_ID: ${VITE_WALLETCONNECT_PROJECT_ID:-}
+        VITE_A7A5_ADDRESS: ${VITE_A7A5_ADDRESS}
+        VITE_WA7A5_ADDRESS: ${VITE_WA7A5_ADDRESS}
+        VITE_UNIV2_PAIR_USDT_A7A5: ${VITE_UNIV2_PAIR_USDT_A7A5:-0x0000000000000000000000000000000000000000}
+        VITE_UNIV3_POOL_USDT_WA7A5: ${VITE_UNIV3_POOL_USDT_WA7A5:-0x0000000000000000000000000000000000000000}
+        VITE_UNIV3_FEE_TIER: ${VITE_UNIV3_FEE_TIER:-500}
+    container_name: para-swap-frontend
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
