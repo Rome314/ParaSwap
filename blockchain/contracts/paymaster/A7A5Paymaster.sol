@@ -3,9 +3,18 @@ pragma solidity 0.8.22;
 
 import {PaymasterERC20} from "@openzeppelin/community-contracts/contracts/account/paymaster/PaymasterERC20.sol";
 import {ERC4337Utils} from "@openzeppelin/contracts/account/utils/draft-ERC4337Utils.sol";
-import {IEntryPoint, PackedUserOperation} from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {
+    IEntryPoint,
+    PackedUserOperation
+} from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
+import {
+    IERC20,
+    SafeERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    Ownable2Step,
+    Ownable
+} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -62,7 +71,11 @@ contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
         A7A5NativeOracle oracle_,
         address owner_
     ) Ownable(owner_) {
-        if (address(entryPoint_) == address(0) || address(a7a5) == address(0) || address(oracle_) == address(0)) {
+        if (
+            address(entryPoint_) == address(0) ||
+            address(a7a5) == address(0) ||
+            address(oracle_) == address(0)
+        ) {
             revert A7A5Paymaster__ZeroAddress();
         }
         _ENTRY_POINT = entryPoint_;
@@ -74,7 +87,8 @@ contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
 
     /// @notice Point the paymaster at a new price oracle. Owner-only.
     function setOracle(A7A5NativeOracle newOracle) external onlyOwner {
-        if (address(newOracle) == address(0)) revert A7A5Paymaster__ZeroAddress();
+        if (address(newOracle) == address(0))
+            revert A7A5Paymaster__ZeroAddress();
         emit OracleUpdated(address(oracle), address(newOracle));
         oracle = newOracle;
     }
@@ -103,7 +117,12 @@ contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
     function _fetchDetails(
         PackedUserOperation calldata /* userOp */,
         bytes32 /* userOpHash */
-    ) internal view override returns (uint256 validationData, IERC20 token, uint256 tokenPrice) {
+    )
+        internal
+        view
+        override
+        returns (uint256 validationData, IERC20 token, uint256 tokenPrice)
+    {
         token = IERC20(address(A7A5));
         if (paused()) {
             return (ERC4337Utils.SIG_VALIDATION_FAILED, token, 0);
@@ -126,7 +145,16 @@ contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
         uint256 tokenPrice,
         address prefunder_,
         uint256 maxCost
-    ) internal override returns (bool prefunded, uint256 prefundAmount, address prefunder, bytes memory prefundContext) {
+    )
+        internal
+        override
+        returns (
+            bool prefunded,
+            uint256 prefundAmount,
+            address prefunder,
+            bytes memory prefundContext
+        )
+    {
         uint256 feePerGas = userOp.maxFeePerGas();
         uint256 targetNet = _erc20Cost(maxCost, feePerGas, tokenPrice);
         uint256 grossPull = _grossUpForFee(targetNet);

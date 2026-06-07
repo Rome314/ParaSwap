@@ -1,11 +1,12 @@
 import {expect} from 'chai';
 import {ethers, FAR_DEADLINE, loadFixture, PAST_DEADLINE, SIDE, STRATEGY, USDT_IN, A7A5_IN} from './consts.js';
 import {buyFixture, deployFacadeFixture, sellFixture} from './fixtures.js';
-import {formatUnits6, gasUsedEthStr, revertMsg, setV2Reserve, tokens} from './helpers.js';
+import {gasUsedEthStr, revertMsg, setV2Reserve, tokens} from './helpers.js';
 import {ADDRESSES} from '../../common/addresses.js';
 import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.js';
 import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import type {IA7A5} from '../../types/ethers-contracts/index.js';
+import {formatUnits6} from '../helpers.js';
 
 // ── swapA7A5AtBestQuote ───────────────────────────────────────────────
 describe('swapA7A5AtBestQuote', function () {

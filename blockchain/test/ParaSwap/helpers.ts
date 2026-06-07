@@ -1,16 +1,9 @@
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
 import {IWA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IWA7A5__factory.js';
 import {ADDRESSES} from '../../common/addresses.js';
-import {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
-import {ethers} from './consts.js';
+import {HardhatEthersSigner, HardhatEthersProvider} from '@nomicfoundation/hardhat-ethers/types';
 import type {TransactionReceipt} from 'ethers';
-
-export function fmt6(n: bigint) {
-  return ethers.formatUnits(n, 6);
-}
-export function fmt18(n: bigint) {
-  return ethers.formatUnits(n, 18);
-}
+import {ethers} from './consts.js';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 

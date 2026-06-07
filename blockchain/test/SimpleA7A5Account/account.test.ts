@@ -29,14 +29,23 @@ describe('SimpleA7A5Account', function () {
   // Line 30: constructor reverts on zero address
   describe('constructor', function () {
     it('reverts when entryPoint is the zero address', async function () {
-      await expect(ethers.deployContract('SimpleA7A5Account', [ZERO, ethers.Wallet.createRandom().address])).to.be
-        .reverted;
+      await expect(
+        ethers.deployContract('SimpleA7A5Account', [ZERO, ethers.Wallet.createRandom().address]),
+      ).to.be.revertedWithCustomError(
+        {interface: (await ethers.getContractFactory('SimpleA7A5Account')).interface} as any,
+        'SimpleA7A5Account__ZeroAddress',
+      );
     });
 
     it('reverts when owner is the zero address', async function () {
       const ep = await ethers.deployContract('MockEntryPoint');
       await ep.waitForDeployment();
-      await expect(ethers.deployContract('SimpleA7A5Account', [await ep.getAddress(), ZERO])).to.be.reverted;
+      await expect(
+        ethers.deployContract('SimpleA7A5Account', [await ep.getAddress(), ZERO]),
+      ).to.be.revertedWithCustomError(
+        {interface: (await ethers.getContractFactory('SimpleA7A5Account')).interface} as any,
+        'SimpleA7A5Account__ZeroAddress',
+      );
     });
   });
 
@@ -55,9 +64,10 @@ describe('SimpleA7A5Account', function () {
         paymasterAndData: '0x',
         signature: '0x',
       };
-      await expect(
-        (account as any).connect(deployer).validateUserOp(op, ethers.ZeroHash, 0n),
-      ).to.be.revertedWithCustomError(account, 'SimpleA7A5Account__NotEntryPoint');
+      await expect((account as any).connect(deployer).validateUserOp(op, ethers.ZeroHash, 0n)).to.be.revertedWithCustomError(
+        account,
+        'SimpleA7A5Account__NotEntryPoint',
+      );
     });
 
     // Lines 50-51: missingAccountFunds top-up path
@@ -87,9 +97,10 @@ describe('SimpleA7A5Account', function () {
       const stranger = ethers.Wallet.createRandom().connect(ethers.provider);
       await networkHelpers.setBalance(await stranger.getAddress(), ethers.parseEther('1'));
 
-      await expect(
-        (account as any).connect(stranger).execute(await deployer.getAddress(), 0n, '0x'),
-      ).to.be.revertedWithCustomError(account, 'SimpleA7A5Account__NotOwnerOrEntryPoint');
+      await expect((account as any).connect(stranger).execute(await deployer.getAddress(), 0n, '0x')).to.be.revertedWithCustomError(
+        account,
+        'SimpleA7A5Account__NotOwnerOrEntryPoint',
+      );
     });
 
     // Lines 60-61: assembly revert when the target call fails
@@ -101,9 +112,7 @@ describe('SimpleA7A5Account', function () {
       await target.waitForDeployment();
       const failData = target.interface.encodeFunctionData('fail');
 
-      await expect(
-        (account as any).connect(ownerWallet).execute(await target.getAddress(), 0n, failData),
-      ).to.be.revertedWith('target failed');
+      await expect((account as any).connect(ownerWallet).execute(await target.getAddress(), 0n, failData)).to.be.revertedWith('target failed');
     });
 
     it('emits Executed on success', async function () {

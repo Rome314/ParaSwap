@@ -1,17 +1,12 @@
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-import {BigNumberish, Contract, ContractTransactionReceipt, Provider} from 'ethers';
+import {ContractTransactionReceipt, Provider} from 'ethers';
 import {ethers, mask112, networkHelpers, provider} from './consts.js';
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
 import {IWA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IWA7A5__factory.js';
 import {ADDRESSES} from '../../common/addresses.js';
 import {SnapshotRestorer} from '@nomicfoundation/hardhat-network-helpers/types';
 import {V2Pair__factory} from '../../types/ethers-contracts/factories/interfaces/Uniswap.sol/V2Pair__factory.js';
-
-export function formatUnits6(input: BigNumberish): string {
-  return ethers.formatUnits(input, 6);
-}
-export const abs = (a: bigint, b: bigint) => (a > b ? a - b : b - a);
 
 export function tokens() {
   return {

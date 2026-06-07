@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {
+    Ownable2Step,
+    Ownable
+} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -69,10 +72,14 @@ contract A7A5UsdtTwapOracle is AggregatorV3Interface, Ownable2Step {
         // Both pool tokens must be exactly {wa7a5, usdt}.
         address t0 = pool.token0();
         address t1 = pool.token1();
-        if (!((t0 == address(wa7a5) && t1 == usdt) || (t0 == usdt && t1 == address(wa7a5)))) {
+        if (
+            !((t0 == address(wa7a5) && t1 == usdt) ||
+                (t0 == usdt && t1 == address(wa7a5)))
+        ) {
             revert A7A5UsdtTwapOracle__PoolMismatch();
         }
-        if (window < MIN_TWAP_WINDOW) revert A7A5UsdtTwapOracle__WindowTooShort(window, MIN_TWAP_WINDOW);
+        if (window < MIN_TWAP_WINDOW)
+            revert A7A5UsdtTwapOracle__WindowTooShort(window, MIN_TWAP_WINDOW);
 
         POOL = pool;
         WA7A5 = wa7a5;
@@ -87,7 +94,11 @@ contract A7A5UsdtTwapOracle is AggregatorV3Interface, Ownable2Step {
 
     /// @notice Update the TWAP averaging window. Owner-only; enforces a minimum.
     function setTwapWindow(uint32 newWindow) external onlyOwner {
-        if (newWindow < MIN_TWAP_WINDOW) revert A7A5UsdtTwapOracle__WindowTooShort(newWindow, MIN_TWAP_WINDOW);
+        if (newWindow < MIN_TWAP_WINDOW)
+            revert A7A5UsdtTwapOracle__WindowTooShort(
+                newWindow,
+                MIN_TWAP_WINDOW
+            );
         uint32 old = twapWindow;
         twapWindow = newWindow;
         emit TwapWindowUpdated(old, newWindow);
@@ -100,7 +111,12 @@ contract A7A5UsdtTwapOracle is AggregatorV3Interface, Ownable2Step {
         int24 meanTick = _consultMeanTick(twapWindow);
 
         // USDT base units obtained for 1 whole wA7A5 at the mean tick.
-        uint256 usdtPerWA7A5 = _getQuoteAtTick(meanTick, WA7A5_UNIT, address(WA7A5), USDT);
+        uint256 usdtPerWA7A5 = _getQuoteAtTick(
+            meanTick,
+            WA7A5_UNIT,
+            address(WA7A5),
+            USDT
+        );
 
         // A7A5 base units backing 1 whole wA7A5 (>= one A7A5 unit as the wrapper accrues value).
         uint256 a7a5PerWA7A5 = WA7A5.getA7A5BywA7A5(WA7A5_UNIT);
@@ -139,16 +155,30 @@ contract A7A5UsdtTwapOracle is AggregatorV3Interface, Ownable2Step {
     function latestRoundData()
         external
         view
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
     {
         uint80 round = uint80(block.timestamp);
-        return (round, int256(latestAnswer()), block.timestamp, block.timestamp, round);
+        return (
+            round,
+            int256(latestAnswer()),
+            block.timestamp,
+            block.timestamp,
+            round
+        );
     }
 
     // ── Internal math ─────────────────────────────────────────────────────────────
 
     /// @dev Arithmetic-mean tick over `window` seconds, rounded toward negative infinity (Uniswap convention).
-    function _consultMeanTick(uint32 window) internal view returns (int24 meanTick) {
+    function _consultMeanTick(
+        uint32 window
+    ) internal view returns (int24 meanTick) {
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0] = window;
         secondsAgos[1] = 0;
@@ -170,14 +200,20 @@ contract A7A5UsdtTwapOracle is AggregatorV3Interface, Ownable2Step {
         uint160 sqrtRatioX96 = TickMath.getSqrtRatioAtTick(tick);
         if (sqrtRatioX96 <= type(uint128).max) {
             uint256 ratioX192 = uint256(sqrtRatioX96) * sqrtRatioX96;
-            quoteAmount = baseToken < quoteToken
-                ? Math.mulDiv(ratioX192, baseAmount, 1 << 192)
-                : Math.mulDiv(1 << 192, baseAmount, ratioX192);
+            quoteAmount =
+                baseToken < quoteToken
+                    ? Math.mulDiv(ratioX192, baseAmount, 1 << 192)
+                    : Math.mulDiv(1 << 192, baseAmount, ratioX192);
         } else {
-            uint256 ratioX128 = Math.mulDiv(sqrtRatioX96, sqrtRatioX96, 1 << 64);
-            quoteAmount = baseToken < quoteToken
-                ? Math.mulDiv(ratioX128, baseAmount, 1 << 128)
-                : Math.mulDiv(1 << 128, baseAmount, ratioX128);
+            uint256 ratioX128 = Math.mulDiv(
+                sqrtRatioX96,
+                sqrtRatioX96,
+                1 << 64
+            );
+            quoteAmount =
+                baseToken < quoteToken
+                    ? Math.mulDiv(ratioX128, baseAmount, 1 << 128)
+                    : Math.mulDiv(1 << 128, baseAmount, ratioX128);
         }
     }
 }

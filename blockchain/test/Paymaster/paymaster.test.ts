@@ -3,16 +3,7 @@ import {expect} from 'chai';
 import {ADDRESSES} from '../../common/addresses.js';
 import {buildSignedUserOp} from '../../common/erc4337.js';
 import {fundFromWhale, forkReady} from '../helpers.js';
-import {
-  conn,
-  ethers,
-  networkHelpers,
-  loadFixture,
-  A7A5_SWAP_IN,
-  A7A5_GAS_FUNDING,
-  MAX_STALENESS,
-  FAR_DEADLINE,
-} from './consts.js';
+import {conn, ethers, networkHelpers, loadFixture, A7A5_SWAP_IN, A7A5_GAS_FUNDING, MAX_STALENESS, FAR_DEADLINE} from './consts.js';
 import {deployPaymasterStackFixture, approveFromAccount} from './fixtures.js';
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
 
@@ -82,10 +73,7 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
 
     it('only the owner can pause', async function () {
       const {paymaster, owner} = await loadFixture(deployPaymasterStackFixture);
-      await expect((paymaster as any).connect(owner).pause()).to.be.revertedWithCustomError(
-        paymaster,
-        'OwnableUnauthorizedAccount',
-      );
+      await expect((paymaster as any).connect(owner).pause()).to.be.revertedWithCustomError(paymaster, 'OwnableUnauthorizedAccount');
     });
   });
 
@@ -104,10 +92,7 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
         callData: buildSwapCallData(f.paraSwapAddr),
         paymaster: f.paymasterAddr,
       });
-      await expect((f.entryPoint as any).connect(f.bundler).handleOps([op], f.deployerAddr)).to.emit(
-        f.paymaster,
-        'UserOperationSponsored',
-      );
+      await expect((f.entryPoint as any).connect(f.bundler).handleOps([op], f.deployerAddr)).to.emit(f.paymaster, 'UserOperationSponsored');
 
       const accUsdtAfter: bigint = await usdt(ethers.provider).balanceOf(f.accountAddr);
       const accA7A5After: bigint = await a7a5(ethers.provider).balanceOf(f.accountAddr);
@@ -219,11 +204,7 @@ describe('A7A5Paymaster (unit, no fork)', function () {
     const mockA7A5Token = await ethers.deployContract('MockToken', [6]);
     await mockA7A5Token.waitForDeployment();
 
-    const wa7a5 = await ethers.deployContract('MockWA7A5', [
-      await mockA7A5Token.getAddress(),
-      BigInt(10 ** 6),
-      6,
-    ]);
+    const wa7a5 = await ethers.deployContract('MockWA7A5', [await mockA7A5Token.getAddress(), BigInt(10 ** 6), 6]);
     await wa7a5.waitForDeployment();
 
     const now = (await ethers.provider.getBlock('latest'))!.timestamp;
@@ -264,10 +245,7 @@ describe('A7A5Paymaster (unit, no fork)', function () {
     const ZERO = '0x0000000000000000000000000000000000000000';
     await expect(
       ethers.deployContract('A7A5Paymaster', [ZERO, await t.getAddress(), await oracle.getAddress(), await deployer.getAddress()]),
-    ).to.be.revertedWithCustomError(
-      {interface: (await ethers.getContractFactory('A7A5Paymaster')).interface} as any,
-      'A7A5Paymaster__ZeroAddress',
-    );
+    ).to.be.revertedWithCustomError({interface: (await ethers.getContractFactory('A7A5Paymaster')).interface} as any, 'A7A5Paymaster__ZeroAddress');
   });
 
   it('constructor reverts when a7a5 is the zero address', async function () {
@@ -279,10 +257,7 @@ describe('A7A5Paymaster (unit, no fork)', function () {
     const ZERO = '0x0000000000000000000000000000000000000000';
     await expect(
       ethers.deployContract('A7A5Paymaster', [await ep.getAddress(), ZERO, await oracle.getAddress(), await deployer.getAddress()]),
-    ).to.be.revertedWithCustomError(
-      {interface: (await ethers.getContractFactory('A7A5Paymaster')).interface} as any,
-      'A7A5Paymaster__ZeroAddress',
-    );
+    ).to.be.revertedWithCustomError({interface: (await ethers.getContractFactory('A7A5Paymaster')).interface} as any, 'A7A5Paymaster__ZeroAddress');
   });
 
   // Lines 77-79: setOracle updates oracle and emits OracleUpdated
@@ -290,11 +265,7 @@ describe('A7A5Paymaster (unit, no fork)', function () {
     const {deployer, oracle, paymaster} = await deployPaymasterUnit();
 
     // Deploy a second oracle as the replacement.
-    const wa7a5 = await ethers.deployContract('MockWA7A5', [
-      await (await ethers.deployContract('MockToken', [6])).getAddress(),
-      BigInt(10 ** 6),
-      6,
-    ]);
+    const wa7a5 = await ethers.deployContract('MockWA7A5', [await (await ethers.deployContract('MockToken', [6])).getAddress(), BigInt(10 ** 6), 6]);
     await wa7a5.waitForDeployment();
     const now = (await ethers.provider.getBlock('latest'))!.timestamp;
     const feed = await ethers.deployContract('MockChainlinkFeed', [400_000_000_000_000n, now, 18]);
@@ -320,10 +291,7 @@ describe('A7A5Paymaster (unit, no fork)', function () {
   it('setOracle reverts when new oracle is the zero address', async function () {
     const {deployer, paymaster} = await deployPaymasterUnit();
     const ZERO = '0x0000000000000000000000000000000000000000';
-    await expect((paymaster as any).connect(deployer).setOracle(ZERO)).to.be.revertedWithCustomError(
-      paymaster,
-      'A7A5Paymaster__ZeroAddress',
-    );
+    await expect((paymaster as any).connect(deployer).setOracle(ZERO)).to.be.revertedWithCustomError(paymaster, 'A7A5Paymaster__ZeroAddress');
   });
 
   // Line 89: unpause re-enables the paymaster

@@ -18,13 +18,7 @@ const conn = await network.create('hardhat');
 const {ethers} = conn;
 
 async function deployOracleStack(owner: string): Promise<string> {
-  const twap = await ethers.deployContract('A7A5UsdtTwapOracle', [
-    ADDRESSES.V3_POOL_USDT_WA7A5,
-    ADDRESSES.WA7A5,
-    ADDRESSES.USDT,
-    TWAP_WINDOW,
-    owner,
-  ]);
+  const twap = await ethers.deployContract('A7A5UsdtTwapOracle', [ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.WA7A5, ADDRESSES.USDT, TWAP_WINDOW, owner]);
   await twap.waitForDeployment();
   const oracle = await ethers.deployContract('A7A5NativeOracle', [
     await twap.getAddress(),
@@ -47,12 +41,7 @@ async function main() {
     console.log(`Deployed oracle stack; A7A5NativeOracle: ${oracleAddr}`);
   }
 
-  const paymaster = await ethers.deployContract('A7A5Paymaster', [
-    ADDRESSES.ENTRYPOINT_V08,
-    ADDRESSES.A7A5,
-    oracleAddr,
-    owner,
-  ]);
+  const paymaster = await ethers.deployContract('A7A5Paymaster', [ADDRESSES.ENTRYPOINT_V08, ADDRESSES.A7A5, oracleAddr, owner]);
   await paymaster.waitForDeployment();
   const paymasterAddr = await paymaster.getAddress();
 

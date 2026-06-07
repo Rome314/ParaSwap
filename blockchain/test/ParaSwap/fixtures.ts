@@ -1,12 +1,12 @@
 import {ADDRESSES} from '../../common/addresses.js';
 import {fundFromWhale} from '../helpers.js';
-import {A7A5_IN, conn, ethers, networkHelpers, USDT_IN, WA7A5_IN, USDC_IN, WETH_IN} from './consts.js';
+import {conn, ethers, networkHelpers, USDT_IN, WA7A5_IN, USDC_IN, WETH_IN} from './consts.js';
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
 import {IWA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IWA7A5__factory.js';
 import type {ParaSwap} from '../../types/ethers-contracts/ParaSwap.js';
 import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.js';
 
-// ── FOT helper ────────────────────────────────────────────────────────────────
+// ── FOT helpers ───────────────────────────────────────────────────────────────
 
 async function findBpsSlot(): Promise<number> {
   const a7a5 = IA7A5__factory.connect(ADDRESSES.A7A5, ethers.provider);
@@ -45,228 +45,39 @@ export async function deployParaSwapFixture() {
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();
 
-  const paraSwap = (await ethers.deployContract('ParaSwap', [
-    facadeAddr,
-    ADDRESSES.SWAP_ROUTER_02,
-  ])) as unknown as ParaSwap;
+  const paraSwap = (await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02])) as unknown as ParaSwap;
   await paraSwap.waitForDeployment();
   const paraSwapAddr = await paraSwap.getAddress();
 
   return {facade, facadeAddr, paraSwap, paraSwapAddr, trader, traderAddr};
 }
 
-// ── A7A5 SELL: fund trader with A7A5 ─────────────────────────────────────────
+// ── Funded fixture: deploy + fund trader with every token (no approvals) ─────
+// A7A5 remaining after wrap = WA7A5_IN * 2n - WA7A5_IN = A7A5_IN (same value)
 
-export async function sellA7A5Fixture() {
+export async function fundedFixture() {
   const base = await deployParaSwapFixture();
   const a7a5 = IA7A5__factory.connect(ADDRESSES.A7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, A7A5_IN);
-  await (a7a5 as any).approve(base.paraSwapAddr, A7A5_IN);
-  return base;
-}
-
-// ── A7A5 BUY: fund trader with USDT ──────────────────────────────────────────
-
-export async function buyA7A5Fixture() {
-  const base = await deployParaSwapFixture();
-  const usdt = IA7A5__factory.connect(ADDRESSES.USDT, base.trader);
-  await fundFromWhale(conn, ADDRESSES.USDT, ADDRESSES.USDT_WHALE, base.traderAddr, USDT_IN);
-  await (usdt as any).approve(base.paraSwapAddr, USDT_IN);
-  return base;
-}
-
-// ── wA7A5 SELL: fund trader with A7A5, wrap to wA7A5 ─────────────────────────
-
-export async function sellWA7A5Fixture() {
-  const base = await deployParaSwapFixture();
-  const a7a5  = IA7A5__factory.connect(ADDRESSES.A7A5,  base.trader);
   const wa7a5 = IWA7A5__factory.connect(ADDRESSES.WA7A5, base.trader);
-  // Fund A7A5 generously to cover FOT on wrap input
+
   await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, WA7A5_IN * 2n);
   await (a7a5 as any).approve(ADDRESSES.WA7A5, WA7A5_IN * 2n);
   await (wa7a5 as any).wrap(WA7A5_IN);
   const wa7a5Balance: bigint = await wa7a5.balanceOf(base.traderAddr);
-  await (wa7a5 as any).approve(base.paraSwapAddr, wa7a5Balance);
-  return {...base, wa7a5Balance};
-}
 
-// ── wA7A5 BUY: fund trader with USDT ─────────────────────────────────────────
-
-export async function buyWA7A5Fixture() {
-  const base = await deployParaSwapFixture();
-  const usdt = IA7A5__factory.connect(ADDRESSES.USDT, base.trader);
   await fundFromWhale(conn, ADDRESSES.USDT, ADDRESSES.USDT_WHALE, base.traderAddr, USDT_IN);
-  await (usdt as any).approve(base.paraSwapAddr, USDT_IN);
-  return base;
-}
-
-// ── Generic V3: fund trader with USDC ────────────────────────────────────────
-
-export async function genericV3Fixture() {
-  const base = await deployParaSwapFixture();
-  // Use IA7A5 factory (IERC20 superset) to interact with USDC
-  const usdc = IA7A5__factory.connect(ADDRESSES.USDC, base.trader);
   await fundFromWhale(conn, ADDRESSES.USDC, ADDRESSES.USDC_WHALE, base.traderAddr, USDC_IN);
-  await (usdc as any).approve(base.paraSwapAddr, USDC_IN);
-  return base;
-}
+  await fundFromWhale(conn, ADDRESSES.WETH, ADDRESSES.WETH_WHALE, base.traderAddr, WETH_IN);
 
-// ── A7A5 SELL two-hop: fund trader with A7A5 ─────────────────────────────────
-
-export async function sellA7A5ForUSDCFixture() {
-  const base = await deployParaSwapFixture();
-  const a7a5 = IA7A5__factory.connect(ADDRESSES.A7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, A7A5_IN);
-  await (a7a5 as any).approve(base.paraSwapAddr, A7A5_IN);
-  return base;
-}
-
-// ── A7A5 BUY two-hop: fund trader with USDC ──────────────────────────────────
-
-export async function buyA7A5WithUSDCFixture() {
-  const base = await deployParaSwapFixture();
-  const usdc = IA7A5__factory.connect(ADDRESSES.USDC, base.trader);
-  await fundFromWhale(conn, ADDRESSES.USDC, ADDRESSES.USDC_WHALE, base.traderAddr, USDC_IN);
-  await (usdc as any).approve(base.paraSwapAddr, USDC_IN);
-  return base;
-}
-
-// ── wA7A5 SELL two-hop: fund trader with A7A5, wrap to wA7A5 ─────────────────
-
-export async function sellWA7A5ForUSDCFixture() {
-  const base = await deployParaSwapFixture();
-  const a7a5  = IA7A5__factory.connect(ADDRESSES.A7A5,  base.trader);
-  const wa7a5 = IWA7A5__factory.connect(ADDRESSES.WA7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, WA7A5_IN * 2n);
-  await (a7a5 as any).approve(ADDRESSES.WA7A5, WA7A5_IN * 2n);
-  await (wa7a5 as any).wrap(WA7A5_IN);
-  const wa7a5Balance: bigint = await wa7a5.balanceOf(base.traderAddr);
-  await (wa7a5 as any).approve(base.paraSwapAddr, wa7a5Balance);
   return {...base, wa7a5Balance};
 }
 
-// ── wA7A5 BUY two-hop: fund trader with USDC ─────────────────────────────────
+// ── FOT fixture: deploy + fund + A7A5 FOT=1% enabled ─────────────────────────
+// Wrapping happens before FOT is active so wa7a5Balance is unaffected by FOT.
 
-export async function buyWA7A5WithUSDCFixture() {
-  const base = await deployParaSwapFixture();
-  const usdc = IA7A5__factory.connect(ADDRESSES.USDC, base.trader);
-  await fundFromWhale(conn, ADDRESSES.USDC, ADDRESSES.USDC_WHALE, base.traderAddr, USDC_IN);
-  await (usdc as any).approve(base.paraSwapAddr, USDC_IN);
-  return base;
-}
-
-// ── A7A5 SELL two-hop (WETH): fund trader with A7A5 ──────────────────────────
-
-export async function sellA7A5ForWETHFixture() {
-  const base = await deployParaSwapFixture();
-  const a7a5 = IA7A5__factory.connect(ADDRESSES.A7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, A7A5_IN);
-  await (a7a5 as any).approve(base.paraSwapAddr, A7A5_IN);
-  return base;
-}
-
-// ── A7A5 BUY two-hop (WETH): fund trader with WETH ───────────────────────────
-
-export async function buyA7A5WithWETHFixture() {
-  const base = await deployParaSwapFixture();
-  const weth = IA7A5__factory.connect(ADDRESSES.WETH, base.trader);
-  await fundFromWhale(conn, ADDRESSES.WETH, ADDRESSES.WETH_WHALE, base.traderAddr, WETH_IN);
-  await (weth as any).approve(base.paraSwapAddr, WETH_IN);
-  return base;
-}
-
-// ── wA7A5 SELL two-hop (WETH): fund trader with A7A5, wrap to wA7A5 ──────────
-
-export async function sellWA7A5ForWETHFixture() {
-  const base = await deployParaSwapFixture();
-  const a7a5  = IA7A5__factory.connect(ADDRESSES.A7A5,  base.trader);
-  const wa7a5 = IWA7A5__factory.connect(ADDRESSES.WA7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, WA7A5_IN * 2n);
-  await (a7a5 as any).approve(ADDRESSES.WA7A5, WA7A5_IN * 2n);
-  await (wa7a5 as any).wrap(WA7A5_IN);
-  const wa7a5Balance: bigint = await wa7a5.balanceOf(base.traderAddr);
-  await (wa7a5 as any).approve(base.paraSwapAddr, wa7a5Balance);
-  return {...base, wa7a5Balance};
-}
-
-// ── wA7A5 BUY two-hop (WETH): fund trader with WETH ──────────────────────────
-
-export async function buyWA7A5WithWETHFixture() {
-  const base = await deployParaSwapFixture();
-  const weth = IA7A5__factory.connect(ADDRESSES.WETH, base.trader);
-  await fundFromWhale(conn, ADDRESSES.WETH, ADDRESSES.WETH_WHALE, base.traderAddr, WETH_IN);
-  await (weth as any).approve(base.paraSwapAddr, WETH_IN);
-  return base;
-}
-
-// ── A7A5 SELL with FOT=1%: fund trader with A7A5 ─────────────────────────────
-
-export async function sellA7A5FotFixture() {
+export async function fotFixture() {
   const bpsSlot = await findBpsSlot();
-  const base = await deployParaSwapFixture();
+  const funded = await fundedFixture();
   await enableFot(bpsSlot);
-  const a7a5 = IA7A5__factory.connect(ADDRESSES.A7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, A7A5_IN);
-  await (a7a5 as any).approve(base.paraSwapAddr, A7A5_IN);
-  return base;
-}
-
-// ── A7A5 BUY with FOT=1%: fund trader with USDT ──────────────────────────────
-
-export async function buyA7A5FotFixture() {
-  const bpsSlot = await findBpsSlot();
-  const base = await deployParaSwapFixture();
-  await enableFot(bpsSlot);
-  const usdt = IA7A5__factory.connect(ADDRESSES.USDT, base.trader);
-  await fundFromWhale(conn, ADDRESSES.USDT, ADDRESSES.USDT_WHALE, base.traderAddr, USDT_IN);
-  await (usdt as any).approve(base.paraSwapAddr, USDT_IN);
-  return base;
-}
-
-// ── A7A5 SELL two-hop with FOT=1%: fund trader with A7A5 (→ USDT → USDC) ────
-
-export async function sellA7A5ForUSDCFotFixture() {
-  const bpsSlot = await findBpsSlot();
-  const base = await deployParaSwapFixture();
-  await enableFot(bpsSlot);
-  const a7a5 = IA7A5__factory.connect(ADDRESSES.A7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, A7A5_IN);
-  await (a7a5 as any).approve(base.paraSwapAddr, A7A5_IN);
-  return base;
-}
-
-// ── A7A5 BUY two-hop with FOT=1%: fund trader with USDC (→ USDT → A7A5) ─────
-
-export async function buyA7A5WithUSDCFotFixture() {
-  const bpsSlot = await findBpsSlot();
-  const base = await deployParaSwapFixture();
-  await enableFot(bpsSlot);
-  const usdc = IA7A5__factory.connect(ADDRESSES.USDC, base.trader);
-  await fundFromWhale(conn, ADDRESSES.USDC, ADDRESSES.USDC_WHALE, base.traderAddr, USDC_IN);
-  await (usdc as any).approve(base.paraSwapAddr, USDC_IN);
-  return base;
-}
-
-// ── A7A5 SELL two-hop with FOT=1%: fund trader with A7A5 (→ USDT → WETH) ────
-
-export async function sellA7A5ForWETHFotFixture() {
-  const bpsSlot = await findBpsSlot();
-  const base = await deployParaSwapFixture();
-  await enableFot(bpsSlot);
-  const a7a5 = IA7A5__factory.connect(ADDRESSES.A7A5, base.trader);
-  await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, base.traderAddr, A7A5_IN);
-  await (a7a5 as any).approve(base.paraSwapAddr, A7A5_IN);
-  return base;
-}
-
-// ── A7A5 BUY two-hop with FOT=1%: fund trader with WETH (→ USDT → A7A5) ─────
-
-export async function buyA7A5WithWETHFotFixture() {
-  const bpsSlot = await findBpsSlot();
-  const base = await deployParaSwapFixture();
-  await enableFot(bpsSlot);
-  const weth = IA7A5__factory.connect(ADDRESSES.WETH, base.trader);
-  await fundFromWhale(conn, ADDRESSES.WETH, ADDRESSES.WETH_WHALE, base.traderAddr, WETH_IN);
-  await (weth as any).approve(base.paraSwapAddr, WETH_IN);
-  return base;
+  return funded;
 }
