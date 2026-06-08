@@ -100,7 +100,8 @@ export async function deployAAStackFixture() {
 
   const {qx, qy} = testP256PublicKey();
   const initCalldata = encodeInitializeWebAuthn(ethers as any, qx, qy);
-  const accountAddr: string = await (factory as any).cloneAndInitialize(initCalldata);
+  const accountAddr: string = await (factory as any).predictAddress(initCalldata);
+  await (await (factory as any).cloneAndInitialize(initCalldata)).wait();
   const account = await ethers.getContractAt('A7A5WebAuthnAccount', accountAddr);
 
   await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, accountAddr, A7A5_GAS_FUNDING);

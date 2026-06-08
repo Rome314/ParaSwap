@@ -31,6 +31,7 @@ const config: HardhatUserConfig = {
       // Forked chain mirrors Ethereum mainnet, so the deployed A7A5/WA7A5 and the
       // real Uniswap pools are available for impersonation-funded fork tests.
       chainId: 1,
+      blockGasLimit: 30_000_000,
       ...(FORK_URL
         ? {
             forking: {
