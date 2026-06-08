@@ -2,7 +2,7 @@
 
 import {expect} from 'chai';
 import {ADDRESSES} from '../../common/addresses.js';
-import {A7A5_IN, loadFixture, NO_FEE, USDC_IN, USDT_IN, V3_FEE_USDC, V3_FEE_WA7A5, V3_FEE_WETH, WETH_IN} from './consts.js';
+import {A7A5_IN, ethers, loadFixture, NO_FEE, USDC_IN, USDT_IN, V3_FEE_USDC, V3_FEE_WA7A5, V3_FEE_WETH, WETH_IN} from './consts.js';
 import {fundedFixture} from './fixtures.js';
 import {formatUnits18, formatUnits6} from '../helpers.js';
 

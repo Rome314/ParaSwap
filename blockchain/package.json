@@ -7,6 +7,12 @@
     "build": "hardhat build",
     "test": "hardhat test mocha",
     "test:fork": "MAINNET_FORK=1 hardhat test mocha",
+    "test:coverage": "hardhat test mocha --coverage",
+    "test:fork:aa": "MAINNET_FORK=1 hardhat test mocha test/Integration test/UsdtPaymaster test/A7A5AccountFactory test/A7A5WebAuthnAccount/account-fork.test.ts",
+    "fork:demo": "hardhat run scripts/fork-setup-and-demo.ts",
+    "deploy:mainnet": "hardhat ignition deploy ignition/modules/A7A5AA.ts --network mainnet --parameters ignition/parameters/mainnet.json --verify",
+    "deploy:sepolia": "hardhat ignition deploy ignition/modules/A7A5AA_Sepolia.ts --network sepolia --parameters ignition/parameters/sepolia.json --verify",
+    "deploy:sepolia:dry-run": "hardhat ignition visualize ignition/modules/A7A5AA_Sepolia.ts",
     "format": "prettier --write \"**/*.{sol,ts,js}\"",
     "format:check": "prettier --check \"**/*.{sol,ts,js}\""
   },
@@ -19,6 +25,7 @@
     "a7a5": "github:a7a5-defi/a7a5"
   },
   "devDependencies": {
+    "@noble/curves": "^1.9.7",
     "@nomicfoundation/hardhat-ethers": "^4.0.0",
     "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0",
     "@nomicfoundation/hardhat-ignition": "^3.0.0",

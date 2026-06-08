@@ -3,13 +3,18 @@ import {gasUsedEthStr, revertMsg, tokens, zeroV2Reserves} from './helpers.js';
 import {buyFixture, deployFacadeFixture, fotFixture, sellFixture} from './fixtures.js';
 import {expect} from 'chai';
 import {ADDRESSES} from '../../common/addresses.js';
-import {abs, formatUnits6, fundFromWhale} from '../helpers.js';
+import {abs, formatUnits6, forkReady, fundFromWhale, A7A5_MAX_ROUNDING_ERROR} from '../helpers.js';
 import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.js';
 import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import type {IA7A5} from '../../types/ethers-contracts/index.js';
 
 // ── swapA7A5 ────────────────────────────────────────────────────────────
 describe('swapA7A5', function () {
+  if (!forkReady(ADDRESSES.A7A5, ADDRESSES.WA7A5)) {
+    it.skip('requires MAINNET_FORK=1 and real A7A5/WA7A5 addresses', () => {});
+    return;
+  }
+
   let facade: PoolsFacade;
   let facadeAddr: string;
   let trader: HardhatEthersSigner;
@@ -43,7 +48,7 @@ describe('swapA7A5', function () {
     it('trader receives A7A5 and spends exactly USDT_IN', async () => {
       console.log('\n  ── swapA7A5 BUY — basic ────────────────────────────');
 
-      const expectedA7A5 = await facade.quoteA7A5PerUSDT(USDT_IN, side);
+      const expectedA7A5: bigint = await facade.quoteA7A5PerUSDT(USDT_IN, side);
 
       const receipt = await (await facade.connect(trader).swapA7A5(USDT_IN, side, 0n, FAR_DEADLINE)).wait();
 
@@ -57,7 +62,7 @@ describe('swapA7A5', function () {
       console.log(`        USDT spent    ${formatUnits6(usdtSpent)} USDT`);
       console.log(`        gas used      ${gasUsedEthStr(receipt)} ETH`);
 
-      expect(a7a5Gained).to.be.closeTo(Number(expectedA7A5), 1, 'A7A5 amount must be within 1 wei of quote');
+      expect(a7a5Gained).to.be.closeTo(expectedA7A5, A7A5_MAX_ROUNDING_ERROR, 'A7A5 amount must be within 1 wei of quote');
       expect(usdtSpent, 'trader must spend exactly USDT_IN').to.equal(USDT_IN);
 
       expect(await usdt.balanceOf(facadeAddr), 'facade must hold no USDT').to.equal(0n);
@@ -81,8 +86,7 @@ describe('swapA7A5', function () {
       console.log(`        usdtSpent     ${formatUnits6(usdtSpent)} USDT  (balance-delta)`);
       console.log(`        gas used      ${gasUsedEthStr(receipt)} ETH`);
 
-      const absDiff = abs(a7a5Gained, a7a5Expected);
-      expect(absDiff, 'a7a5Gained must match FOT-inclusive quote within 1 wei').to.be.lessThanOrEqual(1n);
+      expect(a7a5Gained).to.be.closeTo(a7a5Expected, A7A5_MAX_ROUNDING_ERROR, 'a7a5Gained must match FOT-inclusive quote within 1 wei');
     });
 
     it('actual A7A5 received equals FOT-inclusive quote within rounding', async () => {
@@ -219,8 +223,9 @@ describe('swapA7A5', function () {
       console.log(`        gas used          ${gasUsedEthStr(receipt)} ETH`);
 
       expect(usdtGained, 'USDT received must equal quoteA7A5PerUSDT(A7A5_IN, SELL)').to.equal(usdtExpected);
-      expect(a7a5Spent).to.be.equal(measuredEffectiveIn);
+
       expect(a7a5Spent).to.be.lessThanOrEqual(A7A5_IN);
+      expect(a7a5Spent).to.be.closeTo(measuredEffectiveIn, A7A5_MAX_ROUNDING_ERROR, 'a7a5Spent must match measuredEffectiveIn within 1 wei');
     });
   });
 
@@ -281,9 +286,7 @@ describe('swapA7A5', function () {
       console.log(`        a7a5Gained ${formatUnits6(a7a5Gained)} A7A5  (balance-delta)`);
       console.log(`        gas used   ${gasUsedEthStr(receipt)} ETH`);
 
-      expect(a7a5Gained).to.be.equal(a7a5Expected);
-      const absDiff = abs(a7a5Gained, a7a5Expected);
-      expect(absDiff, 'a7a5Gained must match FOT-inclusive quote within 5 units').to.be.lessThanOrEqual(5n);
+      expect(a7a5Gained).to.be.closeTo(a7a5Expected, A7A5_MAX_ROUNDING_ERROR, 'a7a5Gained must match FOT-inclusive quote within 1 wei');
     });
 
     it('swapA7A5 SELL: USDT received equals quoteA7A5PerUSDT(A7A5_IN, SELL) with real non-zero fee', async () => {

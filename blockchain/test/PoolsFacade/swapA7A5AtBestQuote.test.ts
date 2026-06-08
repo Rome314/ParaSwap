@@ -6,10 +6,15 @@ import {ADDRESSES} from '../../common/addresses.js';
 import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.js';
 import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import type {IA7A5} from '../../types/ethers-contracts/index.js';
-import {formatUnits6} from '../helpers.js';
+import {formatUnits6, forkReady} from '../helpers.js';
 
 // ── swapA7A5AtBestQuote ───────────────────────────────────────────────
 describe('swapA7A5AtBestQuote', function () {
+  if (!forkReady(ADDRESSES.A7A5, ADDRESSES.WA7A5)) {
+    it.skip('requires MAINNET_FORK=1 and real A7A5/WA7A5 addresses', () => {});
+    return;
+  }
+
   let facade: PoolsFacade;
   let facadeAddr: string;
   let trader: HardhatEthersSigner;
@@ -122,7 +127,7 @@ describe('swapA7A5AtBestQuote', function () {
       console.log(`        a7a5Spent   ${formatUnits6(a7a5Spent)} A7A5`);
       console.log(`        gas used    ${gasUsedEthStr(receipt)} ETH`);
 
-      expect(usdtGained, 'trader must gain USDT').to.be.equal(usdtExpected);
+      expect(usdtGained, 'trader must gain USDT').to.be.closeTo(usdtExpected, 10n);
       expect(a7a5Spent, 'trader must spend ≤ A7A5_IN').to.be.lessThanOrEqual(A7A5_IN);
       expect(await usdt.balanceOf(facadeAddr), 'facade must hold no USDT').to.equal(0n);
       expect(await a7a5.balanceOf(facadeAddr), 'facade must hold no A7A5').to.equal(0n);

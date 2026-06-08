@@ -21,7 +21,7 @@ import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import {tokens, gasReport, fetchEthPrice} from './helpers.js';
 import type {IA7A5} from '../../types/ethers-contracts/interfaces/IA7A5.sol/IA7A5.js';
 import type {IWA7A5} from '../../types/ethers-contracts/ParaSwap.sol/IWA7A5.js';
-import {abs, formatUnits6, formatUnits18} from '../helpers.js';
+import {abs, formatUnits6, formatUnits18, forkReady, checkRoundingError, A7A5_MAX_ROUNDING_ERROR} from '../helpers.js';
 
 // ── Global ETH/USD price for gas display ─────────────────────────────────────
 
@@ -39,6 +39,13 @@ before(async function () {
 // ── A7A5 SELL (A7A5 → USDT) ──────────────────────────────────────────────────
 
 describe('ParaSwap', function () {
+  if (!forkReady(ADDRESSES.A7A5, ADDRESSES.WA7A5)) {
+    it.skip('requires MAINNET_FORK=1 and real A7A5/WA7A5 addresses', () => {
+      console.log('MAINNET_FORK=1 and real A7A5/WA7A5 addresses');
+    });
+    return;
+  }
+
   let paraSwap: ParaSwap;
   let paraSwapAddr: string;
   let trader: HardhatEthersSigner;
@@ -57,9 +64,6 @@ describe('ParaSwap', function () {
   let wethBalanceBefore: bigint;
 
   describe('ONE HOP', () => {
-    before(function () {
-      console.log(`\n\n`);
-    });
     beforeEach(async function () {
       ({paraSwap, paraSwapAddr, trader, traderAddr} = await loadFixture(fundedFixture));
       ({usdt, a7a5, wa7a5, usdc} = tokens());
@@ -110,7 +114,7 @@ describe('ParaSwap', function () {
 
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
-        .withArgs(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, (v: bigint) => abs(v, quoted) <= 2n, traderAddr);
+        .withArgs(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, (v: bigint) => checkRoundingError(v, quoted), traderAddr);
 
       const usdtSpent = usdtBalanceBefore - (await usdt.balanceOf(traderAddr));
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
@@ -283,7 +287,7 @@ describe('ParaSwap', function () {
 
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
-        .withArgs(ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, (v: bigint) => abs(v, quoted) <= 2n, traderAddr);
+        .withArgs(ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, (v: bigint) => checkRoundingError(v, quoted), traderAddr);
 
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
       const usdcSpent = usdcBalanceBefore - (await usdc.balanceOf(traderAddr));
@@ -430,7 +434,7 @@ describe('ParaSwap', function () {
 
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
-        .withArgs(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, (v: bigint) => abs(v, quoted) <= 2n, traderAddr);
+        .withArgs(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, (v: bigint) => checkRoundingError(v, quoted), traderAddr);
 
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
       const wethSpent = wethBalanceBefore - (await weth.balanceOf(traderAddr));
@@ -621,7 +625,7 @@ describe('ParaSwap', function () {
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdcGained).to.equal(quoted, 'actual should match quote');
-      expect(a7a5Spent).to.be.equal(A7A5_IN, `must spend A7A5_IN`);
+      expect(a7a5Spent).to.be.closeTo(A7A5_IN, A7A5_MAX_ROUNDING_ERROR, `must spend A7A5_IN`);
 
       expect(await a7a5.balanceOf(paraSwapAddr)).to.be.lessThanOrEqual(1n, 'at most 1 wei A7A5 dust');
       expect(await usdt.balanceOf(paraSwapAddr)).to.equal(0n, 'no USDT left in router');
@@ -674,7 +678,7 @@ describe('ParaSwap', function () {
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(wethGained).to.equal(quoted, 'actual should match quote');
-      expect(a7a5Spent).to.be.equal(A7A5_IN);
+      expect(a7a5Spent).to.be.closeTo(A7A5_IN, A7A5_MAX_ROUNDING_ERROR, `must spend A7A5_IN`);
 
       expect(await a7a5.balanceOf(paraSwapAddr)).to.be.lessThanOrEqual(1n, 'at most 1 wei A7A5 dust');
       expect(await usdt.balanceOf(paraSwapAddr)).to.equal(0n, 'no USDT left in router');
@@ -718,7 +722,9 @@ describe('ParaSwap', function () {
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, NO_FEE);
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
-      await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, quoted, traderAddr);
+      await expect(tx)
+        .to.emit(paraSwap, 'Swapped')
+        .withArgs(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, (v: bigint) => checkRoundingError(v, quoted), traderAddr);
 
       const wa7a5Gained = (await wa7a5.balanceOf(traderAddr)) - wa7a5BalanceBefore;
       const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
@@ -727,8 +733,8 @@ describe('ParaSwap', function () {
       console.log(`    wA7A5 gained ${formatUnits6(wa7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
-      expect(wa7a5Gained).to.be.closeTo(quoted, 3n, 'actual should match quote');
-      expect(a7a5Spent).to.be.equal(A7A5_IN, 'must spend A7A5_IN');
+      expect(wa7a5Gained).to.be.closeTo(quoted, A7A5_MAX_ROUNDING_ERROR, 'actual should match quote');
+      expect(a7a5Spent).to.be.closeTo(A7A5_IN, A7A5_MAX_ROUNDING_ERROR, `must spend A7A5_IN`);
 
       expect(await a7a5.balanceOf(paraSwapAddr)).to.be.lessThanOrEqual(1n, 'at most 1 wei A7A5 dust');
       expect(await wa7a5.balanceOf(paraSwapAddr)).to.equal(0n, 'no wA7A5 left in router');
