@@ -3,6 +3,7 @@ import {ENTRYPOINT_ABI} from '../../common/erc4337.js';
 import {fundFromWhale} from '../helpers.js';
 import {conn, ethers, networkHelpers, SIDE, TWAP_WINDOW, MAX_STALENESS, A7A5_GAS_FUNDING, USDT_POKE, V3_POOL_ABI, FAR_DEADLINE} from './consts.js';
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
+import {A7A5Paymaster} from '../../types/ethers-contracts/index.ts';
 
 const ERC20_APPROVE_ABI = ['function approve(address spender, uint256 amount) returns (bool)'];
 
@@ -59,11 +60,11 @@ export async function deployPaymasterStackFixture() {
 
   // 4. Paymaster, deposited + staked in the EntryPoint.
   const entryPoint = new ethers.Contract(ADDRESSES.ENTRYPOINT_V08, ENTRYPOINT_ABI, deployer);
-  const paymaster = await ethers.deployContract('A7A5Paymaster', [ADDRESSES.ENTRYPOINT_V08, ADDRESSES.A7A5, oracleAddr, deployerAddr]);
+  const paymaster: A7A5Paymaster = await ethers.deployContract('A7A5Paymaster', [ADDRESSES.ENTRYPOINT_V08, ADDRESSES.A7A5, oracleAddr, deployerAddr]);
   await paymaster.waitForDeployment();
   const paymasterAddr = await paymaster.getAddress();
-  await (await (paymaster as any).deposit({value: ethers.parseEther('5')})).wait();
-  await (await (paymaster as any).addStake(86_400, {value: ethers.parseEther('1')})).wait();
+  await (await paymaster.deposit({value: ethers.parseEther('5')})).wait();
+  await (await paymaster.addStake(86_400, {value: ethers.parseEther('1')})).wait();
 
   // 5. Smart account owned by `owner`.
   const account = await ethers.deployContract('SimpleA7A5Account', [ADDRESSES.ENTRYPOINT_V08, ownerAddr]);
