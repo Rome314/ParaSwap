@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Scan OZ packages for Tailwind classes used in /debug */
+@source "../node_modules/@openzeppelin";
+
 @theme {
   --color-bg: #0a0a0f;
   --color-surface: #111118;

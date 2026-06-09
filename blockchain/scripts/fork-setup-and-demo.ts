@@ -172,6 +172,7 @@ async function main() {
     accountFactory: await factory.getAddress(),
     accountImpl: await accountImpl.getAddress(),
     webAuthnAccount: accountAddr,
+    a7a5TwapOracle: await twap.getAddress(),
     a7a5NativeOracle: await a7a5Oracle.getAddress(),
     usdtNativeOracle: await usdtOracle.getAddress(),
   };
