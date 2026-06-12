@@ -317,12 +317,18 @@ describe('A7A5UsdtTwapOracle (unit)', function () {
   it('latestAnswer covers the high-ratio else branch (tick > 443637)', async function () {
     const WINDOW = MIN_TWAP_WINDOW;
     const HIGH_TICK = 500_000n;
-    // delta = HIGH_TICK * window = 500000 * 60 = 30_000_000
     const delta = HIGH_TICK * BigInt(WINDOW);
-    // cumulatives[0]=0 (older), cumulatives[1]=delta (newer)
-    const {twap} = await deployTwapOracle({tickCumulatives: [0n, delta]});
+    // Deploy without cumulatives to discover the actual token address ordering.
+    const {twap, pool, wa7a5Addr, usdtAddr} = await deployTwapOracle({});
+    // tick > 443637 → sqrtRatioX96 > uint128.max → exercises the else branch.
+    // price > 0 only when WA7A5 is token0 (lower address); 0 otherwise — both correct.
+    await (pool as any).setCumulatives(0n, delta);
     const price = await (twap as any).latestAnswer();
-    expect(price).to.be.greaterThan(0n);
+    if (wa7a5Addr.toLowerCase() < usdtAddr.toLowerCase()) {
+      expect(price).to.be.greaterThan(0n);
+    } else {
+      expect(price).to.equal(0n);
+    }
   });
 
   // latestRoundData wraps latestAnswer

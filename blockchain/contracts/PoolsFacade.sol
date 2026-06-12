@@ -296,6 +296,13 @@ contract PoolsFacade is ReentrancyGuard {
     /// @dev    BUY  → amountIn is USDT  → output is A7A5
     ///         SELL → amountIn is A7A5  → output is USDT
     ///         Calls the V3 quoter internally; must be called via `eth_call` / `callStatic`.
+    ///
+    ///         FOT accounting (facade-internal hops only): the returned amount
+    ///         nets out the A7A5 fee-on-transfer hops that occur *inside* the
+    ///         facade for each strategy — DIRECT = 1 hop, MIXED = 2 hops — so
+    ///         DIRECT and MIXED are compared on the same FOT basis. Callers
+    ///         (e.g. ParaSwap) must additionally apply any hops that occur
+    ///         *outside* the facade (caller ↔ facade transfers).
     /// @param amountIn  Token amount in (USDT for BUY, A7A5 for SELL).
     /// @param side      Direction of the trade.
     /// @return amountOut  Best output amount across both paths.
@@ -308,7 +315,12 @@ contract PoolsFacade is ReentrancyGuard {
         if (side == SIDE.BUY) {
             uint256 outA7A5Direct = quoteA7A5PerUSDT(amountIn, side);
             uint256 outWA7A5 = quoteWA7A5PerUSDT(amountIn, side);
-            uint256 outA7A5Mixed = WA7A5.getA7A5BywA7A5(outWA7A5);
+            // MIXED BUY incurs 2 facade-internal A7A5 FOT hits: unwrap
+            // (wrapper → facade) and facade → caller. Model both so the
+            // DIRECT (1 hop) vs MIXED comparison uses the same FOT basis.
+            uint256 outA7A5Mixed = getA7A5EffectiveOutput(
+                getA7A5EffectiveOutput(WA7A5.getA7A5BywA7A5(outWA7A5))
+            );
 
             if (outA7A5Direct >= outA7A5Mixed) {
                 strategy = STRATEGY.DIRECT;
@@ -320,7 +332,13 @@ contract PoolsFacade is ReentrancyGuard {
         } else {
             uint256 outUsdtDirect = quoteA7A5PerUSDT(amountIn, side);
 
-            uint256 inWA7A5 = WA7A5.getwA7A5ByA7A5(amountIn);
+            // MIXED SELL incurs 2 facade-internal A7A5 FOT hits before the
+            // wrap converts to wA7A5: caller → facade and facade → wrapper.
+            // Apply both so the DIRECT (1 hop) vs MIXED comparison uses the
+            // same FOT basis.
+            uint256 inWA7A5 = WA7A5.getwA7A5ByA7A5(
+                getA7A5EffectiveOutput(getA7A5EffectiveOutput(amountIn))
+            );
             uint256 outUsdtMixed = quoteWA7A5PerUSDT(inWA7A5, side);
 
             if (outUsdtDirect >= outUsdtMixed) {

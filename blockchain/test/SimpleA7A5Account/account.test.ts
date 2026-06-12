@@ -29,13 +29,23 @@ describe('SimpleA7A5Account', function () {
   // Line 30: constructor reverts on zero address
   describe('constructor', function () {
     it('reverts when entryPoint is the zero address', async function () {
-      await expect(ethers.deployContract('SimpleA7A5Account', [ZERO, ethers.Wallet.createRandom().address])).to.be.reverted;
+      await expect(
+        ethers.deployContract('SimpleA7A5Account', [ZERO, ethers.Wallet.createRandom().address]),
+      ).to.be.revertedWithCustomError(
+        {interface: (await ethers.getContractFactory('SimpleA7A5Account')).interface} as any,
+        'SimpleA7A5Account__ZeroAddress',
+      );
     });
 
     it('reverts when owner is the zero address', async function () {
       const ep = await ethers.deployContract('MockEntryPoint');
       await ep.waitForDeployment();
-      await expect(ethers.deployContract('SimpleA7A5Account', [await ep.getAddress(), ZERO])).to.be.reverted;
+      await expect(
+        ethers.deployContract('SimpleA7A5Account', [await ep.getAddress(), ZERO]),
+      ).to.be.revertedWithCustomError(
+        {interface: (await ethers.getContractFactory('SimpleA7A5Account')).interface} as any,
+        'SimpleA7A5Account__ZeroAddress',
+      );
     });
   });
 

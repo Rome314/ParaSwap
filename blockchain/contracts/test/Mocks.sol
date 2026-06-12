@@ -174,4 +174,5 @@ contract RevertingTarget {
     function fail() external pure {
         revert("target failed");
     }
+    receive() external payable {}
 }

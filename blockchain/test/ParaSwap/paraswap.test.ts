@@ -18,10 +18,10 @@ import {ADDRESSES} from '../../common/addresses.js';
 import type {ParaSwap} from '../../types/ethers-contracts/ParaSwap.js';
 import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.sol/PoolsFacade.js';
 import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
-import {tokens, fmt6, fmt18, gasReport, fetchEthPrice} from './helpers.js';
+import {tokens, gasReport, fetchEthPrice} from './helpers.js';
 import type {IA7A5} from '../../types/ethers-contracts/interfaces/IA7A5.sol/IA7A5.js';
 import type {IWA7A5} from '../../types/ethers-contracts/ParaSwap.sol/IWA7A5.js';
-import {abs} from '../helpers.js';
+import {abs, formatUnits6, formatUnits18} from '../helpers.js';
 
 // ── Global ETH/USD price for gas display ─────────────────────────────────────
 
@@ -85,8 +85,8 @@ describe('ParaSwap', function () {
       const usdtGained = (await usdt.balanceOf(traderAddr)) - usdtBalanceBefore;
       const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
 
-      console.log(`    A7A5 spent    ${fmt6(a7a5Spent)}`);
-      console.log(`    USDT gained   ${fmt6(usdtGained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    A7A5 spent    ${formatUnits6(a7a5Spent)}`);
+      console.log(`    USDT gained   ${formatUnits6(usdtGained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdtGained).to.be.closeTo(quoted, 2n, 'actual should match quote');
@@ -115,8 +115,8 @@ describe('ParaSwap', function () {
       const usdtSpent = usdtBalanceBefore - (await usdt.balanceOf(traderAddr));
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
 
-      console.log(`    USDT spent    ${fmt6(usdtSpent)}`);
-      console.log(`    A7A5 gained   ${fmt6(a7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    USDT spent    ${formatUnits6(usdtSpent)}`);
+      console.log(`    A7A5 gained   ${formatUnits6(a7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       // Double FOT (pair→ParaSwap then ParaSwap→user) has ≤1 rounding error per hit.
@@ -143,8 +143,8 @@ describe('ParaSwap', function () {
       const usdtGained = (await usdt.balanceOf(traderAddr)) - usdtBalanceBefore;
       const wa7a5Spent = wa7a5BalanceBefore - (await wa7a5.balanceOf(traderAddr));
 
-      console.log(`    wA7A5 spent   ${fmt6(wa7a5Spent)}`);
-      console.log(`    USDT gained   ${fmt6(usdtGained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    wA7A5 spent   ${formatUnits6(wa7a5Spent)}`);
+      console.log(`    USDT gained   ${formatUnits6(usdtGained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdtGained).to.equal(quoted, 'actual should match quote');
@@ -169,8 +169,8 @@ describe('ParaSwap', function () {
       const usdtSpent = usdtBalanceBefore - (await usdt.balanceOf(traderAddr));
       const wa7a5Gained = (await wa7a5.balanceOf(traderAddr)) - wa7a5BalanceBefore;
 
-      console.log(`    USDT spent    ${fmt6(usdtSpent)}`);
-      console.log(`    wA7A5 gained  ${fmt6(wa7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    USDT spent    ${formatUnits6(usdtSpent)}`);
+      console.log(`    wA7A5 gained  ${formatUnits6(wa7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(wa7a5Gained).to.equal(quoted, 'actual should match quote');
@@ -195,8 +195,8 @@ describe('ParaSwap', function () {
       const usdtGained = (await usdt.balanceOf(traderAddr)) - usdtBalanceBefore;
       const usdcSpent = usdcBalanceBefore - (await usdc.balanceOf(traderAddr));
 
-      console.log(`    USDC spent    ${fmt6(usdcSpent)}`);
-      console.log(`    USDT gained   ${fmt6(usdtGained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    USDC spent    ${formatUnits6(usdcSpent)}`);
+      console.log(`    USDT gained   ${formatUnits6(usdtGained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdtGained).to.equal(quoted, 'actual should match quote');
@@ -232,11 +232,13 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, V3_FEE_USDC);
 
-      // Verify two-leg composition: facade A7A5→USDT, then V3 USDT→USDC
-      const effectiveIn = await facade.getA7A5EffectiveOutput(await facade.getA7A5EffectiveOutput(A7A5_IN));
+      // Verify two-leg composition: facade A7A5→USDT, then V3 USDT→USDC.
+      // ParaSwap applies 1 external FOT hit (trader→ParaSwap); the facade nets
+      // out its own internal hops inside getBestQuoteA7A5PerUSDT.
+      const effectiveIn = await facade.getA7A5EffectiveOutput(A7A5_IN);
       const [usdtMid] = await facade.getBestQuoteA7A5PerUSDT.staticCall(effectiveIn, 1n /*SELL*/);
       const leg2 = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDT, ADDRESSES.USDC, usdtMid, V3_FEE_USDC);
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
@@ -246,8 +248,8 @@ describe('ParaSwap', function () {
       const usdcGained = (await usdc.balanceOf(traderAddr)) - usdcBalanceBefore;
       const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
 
-      console.log(`    A7A5 spent    ${fmt6(a7a5Spent)}`);
-      console.log(`    USDC gained   ${fmt6(usdcGained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    A7A5 spent    ${formatUnits6(a7a5Spent)}`);
+      console.log(`    USDC gained   ${formatUnits6(usdcGained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdcGained).to.be.closeTo(quoted, 2n, 'actual should match quote');
@@ -265,16 +267,16 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, V3_FEE_USDC);
 
-      // Verify two-leg composition: V3 USDC→USDT, then facade USDT→A7A5
+      // Verify two-leg composition: V3 USDC→USDT, then facade USDT→A7A5.
+      // ParaSwap applies 1 external FOT hit (ParaSwap→user); the facade nets
+      // out its own internal hops inside getBestQuoteA7A5PerUSDT.
       const usdtMid = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, V3_FEE_USDC);
       const [a7a5Raw] = await facade.getBestQuoteA7A5PerUSDT.staticCall(usdtMid, 0n /*BUY*/);
 
-      const fot1 = await facade.getA7A5EffectiveOutput(a7a5Raw);
-      const fot2 = await facade.getA7A5EffectiveOutput(fot1);
-      const fot3 = await facade.getA7A5EffectiveOutput(fot2);
+      const a7a5AfterFot = await facade.getA7A5EffectiveOutput(a7a5Raw);
 
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
-      expect(fot3).to.equal(quoted, 'leg1+leg2 composition should match full quote');
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
+      expect(a7a5AfterFot).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
@@ -286,9 +288,11 @@ describe('ParaSwap', function () {
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
       const usdcSpent = usdcBalanceBefore - (await usdc.balanceOf(traderAddr));
 
-      console.log(`    LEGS: (${fmt6(USDC_IN)} USDC) -> (${fmt6(usdtMid)} USDT) -> (${fmt6(a7a5Raw)} A7A5) ..FOT.. -> (${quoted} A7A5 quoted)`);
-      console.log(`    USDC spent    ${fmt6(usdcSpent)}`);
-      console.log(`    A7A5 gained   ${fmt6(a7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(
+        `    LEGS: (${formatUnits6(USDC_IN)} USDC) -> (${formatUnits6(usdtMid)} USDT) -> (${formatUnits6(a7a5Raw)} A7A5) ..FOT.. -> (${quoted} A7A5 quoted)`,
+      );
+      console.log(`    USDC spent    ${formatUnits6(usdcSpent)}`);
+      console.log(`    A7A5 gained   ${formatUnits6(a7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(a7a5Gained).to.be.closeTo(quoted, 10n, 'actual should be within 10 units of quote');
@@ -310,7 +314,7 @@ describe('ParaSwap', function () {
       // Verify two-leg composition: facade wA7A5→USDT, then V3 USDT→USDC
       const usdtMid = await facade.quoteWA7A5PerUSDT.staticCall(wa7a5Balance, 1n /*SELL*/);
       const leg2 = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDT, ADDRESSES.USDC, usdtMid, V3_FEE_USDC);
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.WA7A5, ADDRESSES.USDC, wa7a5Balance, 0n, V3_FEE_USDC, FAR_DEADLINE);
@@ -321,9 +325,9 @@ describe('ParaSwap', function () {
       const usdcGained = (await usdc.balanceOf(traderAddr)) - usdcBalanceBefore;
       const wa7a5Spent = wa7a5BalanceBefore - (await wa7a5.balanceOf(traderAddr));
 
-      console.log(`    LEGS: (${fmt6(wa7a5Balance)} WA7A5) -> (${fmt6(usdtMid)} USDT) -> (${fmt6(quoted)} USDC)`);
-      console.log(`    wA7A5 spent   ${fmt6(wa7a5Spent)}`);
-      console.log(`    USDC gained   ${fmt6(usdcGained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    LEGS: (${formatUnits6(wa7a5Balance)} WA7A5) -> (${formatUnits6(usdtMid)} USDT) -> (${formatUnits6(quoted)} USDC)`);
+      console.log(`    wA7A5 spent   ${formatUnits6(wa7a5Spent)}`);
+      console.log(`    USDC gained   ${formatUnits6(usdcGained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdcGained).to.equal(quoted, 'actual should match quote');
@@ -344,7 +348,7 @@ describe('ParaSwap', function () {
       // Verify two-leg composition: V3 USDC→USDT, then facade USDT→wA7A5
       const usdtMid = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, V3_FEE_USDC);
       const wa7a5Out = await facade.quoteWA7A5PerUSDT.staticCall(usdtMid, 0n /*BUY*/);
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(wa7a5Out).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDC, ADDRESSES.WA7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
@@ -355,9 +359,9 @@ describe('ParaSwap', function () {
       const wa7a5Gained = (await wa7a5.balanceOf(traderAddr)) - wa7a5BalanceBefore;
       const usdcSpent = usdcBalanceBefore - (await usdc.balanceOf(traderAddr));
 
-      console.log(`    LEGS: (${fmt6(USDC_IN)} USDC) -> (${fmt6(usdtMid)} USDT) -> (${fmt6(quoted)} WA7A5)`);
-      console.log(`    USDC spent    ${fmt6(usdcSpent)}`);
-      console.log(`    wA7A5 gained  ${fmt6(wa7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    LEGS: (${formatUnits6(USDC_IN)} USDC) -> (${formatUnits6(usdtMid)} USDT) -> (${formatUnits6(quoted)} WA7A5)`);
+      console.log(`    USDC spent    ${formatUnits6(usdcSpent)}`);
+      console.log(`    wA7A5 gained  ${formatUnits6(wa7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(wa7a5Gained).to.equal(quoted, 'actual should match quote');
@@ -375,11 +379,13 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, V3_FEE_WETH);
 
-      // Verify two-leg composition: facade A7A5→USDT, then V3 USDT→WETH
-      const effectiveIn = await facade.getA7A5EffectiveOutput(await facade.getA7A5EffectiveOutput(A7A5_IN));
+      // Verify two-leg composition: facade A7A5→USDT, then V3 USDT→WETH.
+      // ParaSwap applies 1 external FOT hit (trader→ParaSwap); the facade nets
+      // out its own internal hops inside getBestQuoteA7A5PerUSDT.
+      const effectiveIn = await facade.getA7A5EffectiveOutput(A7A5_IN);
       const [usdtMid] = await facade.getBestQuoteA7A5PerUSDT.staticCall(effectiveIn, 1n /*SELL*/);
       const leg2 = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDT, ADDRESSES.WETH, usdtMid, V3_FEE_WETH);
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
@@ -390,9 +396,9 @@ describe('ParaSwap', function () {
       const wethGained = (await weth.balanceOf(traderAddr)) - wethBalanceBefore;
       const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
 
-      console.log(`    LEGS: (${fmt6(A7A5_IN)} USDC) -> (${fmt6(usdtMid)} USDT) -> (${fmt18(quoted)} WETH)`);
-      console.log(`    A7A5 spent    ${fmt6(a7a5Spent)}`);
-      console.log(`    WETH gained   ${fmt18(wethGained)}  (quoted ${fmt18(quoted)})`);
+      console.log(`    LEGS: (${formatUnits6(A7A5_IN)} USDC) -> (${formatUnits6(usdtMid)} USDT) -> (${formatUnits18(quoted)} WETH)`);
+      console.log(`    A7A5 spent    ${formatUnits6(a7a5Spent)}`);
+      console.log(`    WETH gained   ${formatUnits18(wethGained)}  (quoted ${formatUnits18(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(wethGained).to.be.closeTo(quoted, 2n, 'actual should match quote');
@@ -410,14 +416,14 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, V3_FEE_WETH);
 
-      // Verify two-leg composition: V3 WETH→USDT, then facade USDT→A7A5
+      // Verify two-leg composition: V3 WETH→USDT, then facade USDT→A7A5.
+      // ParaSwap applies 1 external FOT hit (ParaSwap→user); the facade nets
+      // out its own internal hops inside getBestQuoteA7A5PerUSDT.
       const usdtMid = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.WETH, ADDRESSES.USDT, WETH_IN, V3_FEE_WETH);
       const [a7a5Raw] = await facade.getBestQuoteA7A5PerUSDT.staticCall(usdtMid, 0n /*BUY*/);
-      const fot1 = await facade.getA7A5EffectiveOutput(a7a5Raw);
-      const fot2 = await facade.getA7A5EffectiveOutput(fot1);
-      const fot3 = await facade.getA7A5EffectiveOutput(fot2);
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
-      expect(fot3).to.equal(quoted, 'leg1+leg2 composition should match full quote');
+      const a7a5AfterFot = await facade.getA7A5EffectiveOutput(a7a5Raw);
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
+      expect(a7a5AfterFot).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
       const receipt = await tx.wait();
@@ -429,9 +435,9 @@ describe('ParaSwap', function () {
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
       const wethSpent = wethBalanceBefore - (await weth.balanceOf(traderAddr));
 
-      console.log(`    LEGS: (${fmt18(WETH_IN)} WETH) -> (${fmt6(usdtMid)} USDT) -> (${fmt6(quoted)} A7A5)`);
-      console.log(`    WETH spent    ${fmt18(wethSpent)}`);
-      console.log(`    A7A5 gained   ${fmt6(a7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    LEGS: (${formatUnits18(WETH_IN)} WETH) -> (${formatUnits6(usdtMid)} USDT) -> (${formatUnits6(quoted)} A7A5)`);
+      console.log(`    WETH spent    ${formatUnits18(wethSpent)}`);
+      console.log(`    A7A5 gained   ${formatUnits6(a7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(a7a5Gained).to.be.closeTo(quoted, 10n, 'actual should be within 10 units of quote');
@@ -453,7 +459,7 @@ describe('ParaSwap', function () {
       // Verify two-leg composition: facade wA7A5→USDT, then V3 USDT→WETH
       const usdtMid = await facade.quoteWA7A5PerUSDT.staticCall(wa7a5Balance, 1n /*SELL*/);
       const leg2 = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDT, ADDRESSES.WETH, usdtMid, V3_FEE_WETH);
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.WA7A5, ADDRESSES.WETH, wa7a5Balance, 0n, V3_FEE_WETH, FAR_DEADLINE);
@@ -464,9 +470,9 @@ describe('ParaSwap', function () {
       const wethGained = (await weth.balanceOf(traderAddr)) - wethBalanceBefore;
       const wa7a5Spent = wa7a5BalanceBefore - (await wa7a5.balanceOf(traderAddr));
 
-      console.log(`    LEGS: (${fmt6(wa7a5Spent)} WA7A5) -> (${fmt6(usdtMid)} USDT) -> (${fmt18(quoted)} WETH)`);
-      console.log(`    wA7A5 spent   ${fmt6(wa7a5Spent)}`);
-      console.log(`    WETH gained   ${fmt18(wethGained)}  (quoted ${fmt18(quoted)})`);
+      console.log(`    LEGS: (${formatUnits6(wa7a5Spent)} WA7A5) -> (${formatUnits6(usdtMid)} USDT) -> (${formatUnits18(quoted)} WETH)`);
+      console.log(`    wA7A5 spent   ${formatUnits6(wa7a5Spent)}`);
+      console.log(`    WETH gained   ${formatUnits18(wethGained)}  (quoted ${formatUnits18(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(wethGained).to.equal(quoted, 'actual should match quote');
@@ -487,7 +493,7 @@ describe('ParaSwap', function () {
       // Verify two-leg composition: V3 WETH→USDT, then facade USDT→wA7A5
       const usdtMid = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.WETH, ADDRESSES.USDT, WETH_IN, V3_FEE_WETH);
       const wa7a5Out = await facade.quoteWA7A5PerUSDT.staticCall(usdtMid, 0n /*BUY*/);
-      console.log(`    USDT intermediate  ${fmt6(usdtMid)}`);
+      console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(wa7a5Out).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.WETH, ADDRESSES.WA7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
@@ -498,9 +504,9 @@ describe('ParaSwap', function () {
       const wa7a5Gained = (await wa7a5.balanceOf(traderAddr)) - wa7a5BalanceBefore;
       const wethSpent = wethBalanceBefore - (await weth.balanceOf(traderAddr));
 
-      console.log(`    LEGS: (${fmt18(wethSpent)} WETH) -> (${fmt6(usdtMid)} USDT) -> (${fmt6(quoted)} WA7A5)`);
-      console.log(`    WETH spent    ${fmt18(wethSpent)}`);
-      console.log(`    wA7A5 gained  ${fmt6(wa7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    LEGS: (${formatUnits18(wethSpent)} WETH) -> (${formatUnits6(usdtMid)} USDT) -> (${formatUnits6(quoted)} WA7A5)`);
+      console.log(`    WETH spent    ${formatUnits18(wethSpent)}`);
+      console.log(`    wA7A5 gained  ${formatUnits6(wa7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas           ${gasReport(receipt!, ethUsd)}`);
 
       expect(wa7a5Gained).to.equal(quoted, 'actual should match quote');
@@ -519,13 +525,21 @@ describe('ParaSwap', function () {
   describe('non-zero A7A5 FOT', function () {
     let bps: bigint;
     let precision: bigint;
+    let facade: PoolsFacade;
 
     before(function () {
       console.log(`\n\n`);
     });
 
     beforeEach(async function () {
-      ({paraSwap, paraSwapAddr, trader, traderAddr} = await loadFixture(fotFixture));
+      ({paraSwap, paraSwapAddr, trader, traderAddr, facade} = await loadFixture(fotFixture));
+      ({usdt, a7a5, wa7a5, usdc, weth} = tokens());
+
+      usdtBalanceBefore = await usdt.balanceOf(traderAddr);
+      usdcBalanceBefore = await usdc.balanceOf(traderAddr);
+      a7a5BalanceBefore = await a7a5.balanceOf(traderAddr);
+      wa7a5BalanceBefore = await wa7a5.balanceOf(traderAddr);
+      wethBalanceBefore = await weth.balanceOf(traderAddr);
 
       bps = await a7a5.basisPointsRate();
       precision = await a7a5.FEE_PRECISION();
@@ -534,7 +548,7 @@ describe('ParaSwap', function () {
     });
 
     it('A7A5 SELL (A7A5 → USDT): actual USDT == quoted with 1% FOT', async function () {
-      expect(a7a5BalanceBefore).to.closeTo(A7A5_IN, 2n, 'trader must hold A7A5_IN');
+      expect(a7a5BalanceBefore).to.be.greaterThan(A7A5_IN, 'trader must hold A7A5_IN');
       await tokens(trader).a7a5.approve(paraSwapAddr, A7A5_IN);
       expect(await a7a5.allowance(traderAddr, paraSwapAddr)).to.equal(A7A5_IN, 'allowance must be set');
 
@@ -542,14 +556,15 @@ describe('ParaSwap', function () {
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, NO_FEE);
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
-      await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, quoted, traderAddr);
+      const usdtGained = (await usdt.balanceOf(traderAddr)) - usdtBalanceBefore;
+
+      await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, usdtGained, traderAddr);
 
       const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
 
-      const usdtGained = (await usdt.balanceOf(traderAddr)) - usdtBalanceBefore;
-      // console.log(`    A7A5 spent ${fmt6(a7a5Spent)}  (effectiveIn ${fmt6(effectiveIn)})`);
-      console.log(`    A7A5 spent ${fmt6(a7a5Spent)}`);
-      console.log(`    USDT gained ${fmt6(usdtGained)}  (quoted ${fmt6(quoted)})`);
+      // console.log(`    A7A5 spent ${formatUnits6(a7a5Spent)}  (effectiveIn ${formatUnits6(effectiveIn)})`);
+      console.log(`    A7A5 spent ${formatUnits6(a7a5Spent)}`);
+      console.log(`    USDT gained ${formatUnits6(usdtGained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdtGained).to.equal(quoted, 'actual should match quote');
@@ -574,8 +589,8 @@ describe('ParaSwap', function () {
       const usdtSpent = usdtBalanceBefore - (await usdt.balanceOf(traderAddr));
 
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
-      console.log(`    USDT spent ${fmt6(usdtSpent)}`);
-      console.log(`    A7A5 gained ${fmt6(a7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    USDT spent ${formatUnits6(usdtSpent)}`);
+      console.log(`    A7A5 gained ${formatUnits6(a7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(a7a5Gained).to.be.closeTo(quoted, 10n, 'actual should be within 10 units of quote');
@@ -586,7 +601,7 @@ describe('ParaSwap', function () {
     });
 
     it('A7A5 SELL two-hop (A7A5 → USDT → USDC): actual USDC == quoted with 1% FOT', async function () {
-      expect(a7a5BalanceBefore).to.closeTo(A7A5_IN, 2n, 'trader must hold A7A5_IN');
+      expect(a7a5BalanceBefore).to.gte(A7A5_IN, 'trader must hold A7A5_IN');
       await tokens(trader).a7a5.approve(paraSwapAddr, A7A5_IN);
       expect(await a7a5.allowance(traderAddr, paraSwapAddr)).to.equal(A7A5_IN, 'allowance must be set');
 
@@ -601,8 +616,8 @@ describe('ParaSwap', function () {
       const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
       const usdcGained = (await usdc.balanceOf(traderAddr)) - usdcBefore;
 
-      console.log(`    A7A5 spent ${fmt6(a7a5Spent)}`);
-      console.log(`    USDC gained ${fmt6(usdcGained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    A7A5 spent ${formatUnits6(a7a5Spent)}`);
+      console.log(`    USDC gained ${formatUnits6(usdcGained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(usdcGained).to.equal(quoted, 'actual should match quote');
@@ -628,8 +643,8 @@ describe('ParaSwap', function () {
       const usdcSpent = usdcBalanceBefore - (await usdc.balanceOf(traderAddr));
 
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
-      console.log(`    USDC spent ${fmt6(usdcSpent)}`);
-      console.log(`    A7A5 gained ${fmt6(a7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    USDC spent ${formatUnits6(usdcSpent)}`);
+      console.log(`    A7A5 gained ${formatUnits6(a7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(a7a5Gained).to.be.closeTo(quoted, 10n, 'actual should be within 10 units of quote');
@@ -654,8 +669,8 @@ describe('ParaSwap', function () {
 
       const wethGained = (await weth.balanceOf(traderAddr)) - wethBalanceBefore;
       const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
-      console.log(`    A7A5 spent ${fmt6(a7a5Spent)}`);
-      console.log(`    WETH gained ${fmt18(wethGained)}  (quoted ${fmt18(quoted)})`);
+      console.log(`    A7A5 spent ${formatUnits6(a7a5Spent)}`);
+      console.log(`    WETH gained ${formatUnits18(wethGained)}  (quoted ${formatUnits18(quoted)})`);
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(wethGained).to.equal(quoted, 'actual should match quote');
@@ -681,8 +696,8 @@ describe('ParaSwap', function () {
       const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
       const wethSpent = wethBalanceBefore - (await weth.balanceOf(traderAddr));
 
-      console.log(`    WETH spent ${fmt18(wethSpent)}`);
-      console.log(`    A7A5 gained ${fmt6(a7a5Gained)}  (quoted ${fmt6(quoted)})`);
+      console.log(`    WETH spent ${formatUnits18(wethSpent)}`);
+      console.log(`    A7A5 gained ${formatUnits6(a7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
       console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
 
       expect(a7a5Gained).to.be.closeTo(quoted, 10n, 'actual should be within 10 units of quote');
@@ -690,6 +705,61 @@ describe('ParaSwap', function () {
 
       expect(await weth.balanceOf(paraSwapAddr)).to.equal(0n, 'no WETH left in router');
       expect(await usdt.balanceOf(paraSwapAddr)).to.equal(0n, 'no USDT left in router');
+      expect(await a7a5.balanceOf(paraSwapAddr)).to.be.lessThanOrEqual(1n, 'at most 1 wei A7A5 dust');
+    });
+
+    it('A7A5 → wA7A5 (route 3 wrap): actual wA7A5 ≈ quoted with 1% FOT', async function () {
+      // wrap path: 2 A7A5 FOT hits on the input (trader→ParaSwap, ParaSwap→wrapper),
+      // wA7A5 output is not FOT.
+      expect(a7a5BalanceBefore).to.be.gt(A7A5_IN, 'trader must hold A7A5_IN');
+      await tokens(trader).a7a5.approve(paraSwapAddr, A7A5_IN);
+      expect(await a7a5.allowance(traderAddr, paraSwapAddr)).to.equal(A7A5_IN, 'allowance must be set');
+
+      const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, NO_FEE);
+      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
+      const receipt = await tx.wait();
+      await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, quoted, traderAddr);
+
+      const wa7a5Gained = (await wa7a5.balanceOf(traderAddr)) - wa7a5BalanceBefore;
+      const a7a5Spent = a7a5BalanceBefore - (await a7a5.balanceOf(traderAddr));
+
+      console.log(`    A7A5 spent ${formatUnits6(a7a5Spent)}`);
+      console.log(`    wA7A5 gained ${formatUnits6(wa7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
+      console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
+
+      expect(wa7a5Gained).to.be.closeTo(quoted, 3n, 'actual should match quote');
+      expect(a7a5Spent).to.be.equal(A7A5_IN, 'must spend A7A5_IN');
+
+      expect(await a7a5.balanceOf(paraSwapAddr)).to.be.lessThanOrEqual(1n, 'at most 1 wei A7A5 dust');
+      expect(await wa7a5.balanceOf(paraSwapAddr)).to.equal(0n, 'no wA7A5 left in router');
+    });
+
+    it('wA7A5 → A7A5 (route 3 unwrap): actual A7A5 ≈ quoted with 1% FOT', async function () {
+      // unwrap path: 2 A7A5 FOT hits on the output (wrapper→ParaSwap, ParaSwap→user),
+      // wA7A5 input is not FOT.
+      const wa7a5Balance = await wa7a5.balanceOf(traderAddr);
+      expect(wa7a5Balance).to.be.greaterThan(0n, 'trader must hold wA7A5');
+      await tokens(trader).wa7a5.approve(paraSwapAddr, wa7a5Balance);
+      expect(await wa7a5.allowance(traderAddr, paraSwapAddr)).to.equal(wa7a5Balance, 'allowance must be set');
+
+      const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.WA7A5, ADDRESSES.A7A5, wa7a5Balance, NO_FEE);
+      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WA7A5, ADDRESSES.A7A5, wa7a5Balance, 0n, NO_FEE, FAR_DEADLINE);
+      const receipt = await tx.wait();
+      await expect(tx)
+        .to.emit(paraSwap, 'Swapped')
+        .withArgs(ADDRESSES.WA7A5, ADDRESSES.A7A5, wa7a5Balance, (v: bigint) => abs(v, quoted) <= 3n, traderAddr);
+
+      const a7a5Gained = (await a7a5.balanceOf(traderAddr)) - a7a5BalanceBefore;
+      const wa7a5Spent = wa7a5Balance - (await wa7a5.balanceOf(traderAddr));
+
+      console.log(`    wA7A5 spent ${formatUnits6(wa7a5Spent)}`);
+      console.log(`    A7A5 gained ${formatUnits6(a7a5Gained)}  (quoted ${formatUnits6(quoted)})`);
+      console.log(`    gas         ${gasReport(receipt!, ethUsd)}`);
+
+      expect(a7a5Gained).to.be.closeTo(quoted, 3n, 'actual should match quote');
+      expect(wa7a5Spent).to.be.equal(wa7a5Balance, 'must spend full wA7A5 balance');
+
+      expect(await wa7a5.balanceOf(paraSwapAddr)).to.equal(0n, 'no wA7A5 left in router');
       expect(await a7a5.balanceOf(paraSwapAddr)).to.be.lessThanOrEqual(1n, 'at most 1 wei A7A5 dust');
     });
   });

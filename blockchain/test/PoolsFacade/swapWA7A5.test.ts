@@ -2,8 +2,9 @@ import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import type {IA7A5, IWA7A5, PoolsFacade} from '../../types/ethers-contracts/index.js';
 import {ethers, FAR_DEADLINE, loadFixture, networkHelpers, PAST_DEADLINE, SIDE, USDT_IN, WA7A5_IN} from './consts.js';
 import {buyFixture, deployFacadeFixture, v3SellFixture} from './fixtures.js';
-import {abs, formatUnits6, gasUsedEthStr, revertMsg, tokens} from './helpers.js';
+import {gasUsedEthStr, revertMsg, tokens} from './helpers.js';
 import {expect} from 'chai';
+import {abs, formatUnits6} from '../helpers.js';
 
 // ── swapWA7A5 ────────────────────────────────────────────────────────────
 describe('swapWA7A5', function () {

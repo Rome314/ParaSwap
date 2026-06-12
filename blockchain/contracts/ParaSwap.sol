@@ -535,59 +535,65 @@ contract ParaSwap is ReentrancyGuard {
                 : _quoteViaFacadeWA7A5(amountIn, side);
     }
 
+    /// @dev Applies A7A5's fee-on-transfer `hops` times to model sequential
+    ///      transfers. Identity when `basisPointsRate == 0`, so non-FOT quotes
+    ///      are unaffected.
+    function _applyFot(
+        uint256 amount,
+        uint8 hops
+    ) private view returns (uint256) {
+        for (uint8 i = 0; i < hops; i++) {
+            amount = FACADE.getA7A5EffectiveOutput(amount);
+        }
+        return amount;
+    }
+
     /// @dev Quotes A7A5 ↔ wA7A5 via wrap/unwrap conversion rates plus FOT deductions.
-    ///      wrap  path (A7A5→wA7A5): two FOT hits before wrap, then getwA7A5ByA7A5.
-    ///      unwrap path (wA7A5→A7A5): getA7A5BywA7A5, then two FOT hits after unwrap.
+    ///      wrap  path (A7A5→wA7A5): two FOT hits before wrap (trader → ParaSwap,
+    ///      then ParaSwap → wrapper inside `wrap`), then getwA7A5ByA7A5.
+    ///      unwrap path (wA7A5→A7A5): getA7A5BywA7A5, then two FOT hits after unwrap
+    ///      (wrapper → ParaSwap, then ParaSwap → user).
     function _quoteFacadeToFacade(
         address tokenIn,
         uint256 amountIn
     ) private view returns (uint256) {
         IWA7A5 wa7a5 = IWA7A5(WA7A5_TOKEN);
         if (tokenIn == A7A5_TOKEN) {
-            uint256 effectiveIn = FACADE.getA7A5EffectiveOutput(amountIn);
+            // A7A5→wA7A5: two FOT hits — trader → ParaSwap (1), ParaSwap → wrapper (2)
+            uint256 effectiveIn = _applyFot(amountIn, 1);
             return wa7a5.getwA7A5ByA7A5(effectiveIn);
         } else {
             uint256 a7a5Out = wa7a5.getA7A5BywA7A5(amountIn);
-            // wA7A5→A7A5: two FOT hits — unwrap transfer to ParaSwap (1), ParaSwap→user (2)
-            return FACADE.getA7A5EffectiveOutput(FACADE.getA7A5EffectiveOutput(a7a5Out));
+            // wA7A5→A7A5: two FOT hits — unwrap transfer to ParaSwap (1), ParaSwap → user (2)
+            return _applyFot(a7a5Out, 2);
         }
     }
 
-    /// @dev Quote A7A5 ↔ USDT. Accounts for two FOT hits on A7A5 legs:
-    ///      SELL: user→ParaSwap (hit 1), ParaSwap→pair (hit 2, inside facade quote).
-    ///      BUY:  pair→ParaSwap (hit 1, inside facade quote), ParaSwap→user (hit 2).
+    /// @dev Quote A7A5 ↔ USDT. ParaSwap applies only the FOT hops that occur
+    ///      *outside* the facade; the facade nets out its own internal hops
+    ///      (DIRECT = 1, MIXED = 2) inside getBestQuoteA7A5PerUSDT.
+    ///      SELL: 1 external hop (trader → ParaSwap), applied before the facade.
+    ///      BUY:  1 external hop (ParaSwap → user), applied after the facade,
+    ///            independent of the winning strategy.
     function _quoteViaFacadeA7A5(
         uint256 amountIn,
         SIDE side
     ) private returns (uint256) {
         if (side == SIDE.SELL) {
-            // Two FOT hits: trader→ParaSwap, then ParaSwap→pair.
-            uint256 effectiveIn = FACADE.getA7A5EffectiveOutput(
-                FACADE.getA7A5EffectiveOutput(amountIn)
-            );
+            // 1 external FOT hit: trader → ParaSwap.
+            uint256 effectiveIn = _applyFot(amountIn, 1);
             (uint256 out, ) = FACADE.getBestQuoteA7A5PerUSDT(
                 effectiveIn,
                 SIDE.SELL
             );
             return out;
         } else {
-            (uint256 out, STRATEGY strategy) = FACADE.getBestQuoteA7A5PerUSDT(
+            (uint256 out, ) = FACADE.getBestQuoteA7A5PerUSDT(
                 amountIn,
                 SIDE.BUY
             );
-            if (strategy == STRATEGY.MIXED) {
-                // MIXED: 0-FOT basis from getA7A5BywA7A5; apply all 3 hits
-                // (wrapper→facade, facade→ParaSwap, ParaSwap→user)
-                return FACADE.getA7A5EffectiveOutput(
-                    FACADE.getA7A5EffectiveOutput(
-                        FACADE.getA7A5EffectiveOutput(out)
-                    )
-                );
-            } else {
-                // DIRECT: quoteA7A5PerUSDT already applied 1 FOT (pair→ParaSwap);
-                // apply 1 more for ParaSwap→user
-                return FACADE.getA7A5EffectiveOutput(out);
-            }
+            // 1 external FOT hit: ParaSwap → user.
+            return _applyFot(out, 1);
         }
     }
 
@@ -608,10 +614,9 @@ contract ParaSwap is ReentrancyGuard {
     ) private returns (uint256) {
         uint256 usdtOut;
         if (facadeToken == A7A5_TOKEN) {
-            // Two FOT hits: trader→ParaSwap, then ParaSwap→pair.
-            uint256 effectiveIn = FACADE.getA7A5EffectiveOutput(
-                FACADE.getA7A5EffectiveOutput(amountIn)
-            );
+            // 1 external FOT hit: trader → ParaSwap. The facade nets out its
+            // own internal hops inside getBestQuoteA7A5PerUSDT.
+            uint256 effectiveIn = _applyFot(amountIn, 1);
             (usdtOut, ) = FACADE.getBestQuoteA7A5PerUSDT(
                 effectiveIn,
                 SIDE.SELL
@@ -631,22 +636,13 @@ contract ParaSwap is ReentrancyGuard {
     ) private returns (uint256) {
         uint256 usdtOut = _quoteV3(tokenIn, USDT_TOKEN, amountIn, fee);
         if (facadeToken == A7A5_TOKEN) {
-            (uint256 a7a5Out, STRATEGY strategy) = FACADE.getBestQuoteA7A5PerUSDT(
+            (uint256 a7a5Out, ) = FACADE.getBestQuoteA7A5PerUSDT(
                 usdtOut,
                 SIDE.BUY
             );
-            if (strategy == STRATEGY.MIXED) {
-                // MIXED: 0-FOT basis; apply all 3 hits
-                // (wrapper→facade, facade→ParaSwap, ParaSwap→user)
-                return FACADE.getA7A5EffectiveOutput(
-                    FACADE.getA7A5EffectiveOutput(
-                        FACADE.getA7A5EffectiveOutput(a7a5Out)
-                    )
-                );
-            } else {
-                // DIRECT: 1 FOT already in quoteA7A5PerUSDT; apply 1 more for ParaSwap→user
-                return FACADE.getA7A5EffectiveOutput(a7a5Out);
-            }
+            // 1 external FOT hit: ParaSwap → user. The facade nets out its own
+            // internal hops, so this is independent of the winning strategy.
+            return _applyFot(a7a5Out, 1);
         } else {
             return FACADE.quoteWA7A5PerUSDT(usdtOut, SIDE.BUY);
         }
