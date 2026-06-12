@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { WalletConnectionHeader } from '@openzeppelin/ui-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@openzeppelin/ui-components';
 import { ForkStatusPanel } from './panels/ForkStatusPanel';
 import { SmartAccountPanel } from './panels/SmartAccountPanel';
@@ -34,6 +35,7 @@ export function DebugDashboard() {
           <Link to="/" className="text-sm text-primary hover:underline">
             ← Main app
           </Link>
+          <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
           <WalletConnectionHeader />
         </div>
       </header>

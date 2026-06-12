@@ -6,6 +6,9 @@ export default defineOpenZeppelinAdapterViteConfig({
   ecosystems: ['evm'],
   config: {
     plugins: [tailwindcss(), react()],
+    optimizeDeps: {
+      include: ['validator'],
+    },
     server: {
       host: '0.0.0.0',
       port: 5173,

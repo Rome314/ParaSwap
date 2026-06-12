@@ -47,7 +47,7 @@ export function useOracleDebug() {
           bigint,
           bigint,
         ];
-        const decimals = (await twap.decimals()) as number;
+        const decimals = Number(await twap.decimals());
         const twapWindow = Number(await twap.twapWindow());
         const pool = (await twap.POOL()) as string;
 
@@ -118,7 +118,7 @@ export function useOracleDebug() {
           bigint,
           bigint,
         ];
-        const decimals = (await cl.decimals()) as number;
+        const decimals = Number(await cl.decimals());
         out.push({
           id: 'chainlink-usdt-eth',
           label: 'Chainlink USDT/ETH (reference)',

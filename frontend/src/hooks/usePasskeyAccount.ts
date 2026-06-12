@@ -11,23 +11,31 @@ export function usePasskeyAccount() {
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
 
-  const coords = loadStoredPasskeyCoords();
   const configured = isAaConfigured();
   const provider = chainId ? getProvider(chainId) : null;
 
   const refreshAddress = useCallback(async () => {
-    if (!provider || !coords?.qx) return;
-    const addr = await predictAccountAddress(provider, coords.qx, coords.qy);
-    setAddress(addr);
-  }, [provider, coords?.qx, coords?.qy]);
+    if (!provider) return;
+    const freshCoords = loadStoredPasskeyCoords();
+    if (!freshCoords?.qx) return;
+    try {
+      const addr = await predictAccountAddress(provider, freshCoords.qx, freshCoords.qy);
+      setAddress(addr);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [provider]);
 
   const createPasskey = useCallback(
     async (label = 'a7a5-user') => {
       setBusy(true);
       setError(null);
       try {
-        await registerPasskey(label);
-        await refreshAddress();
+        const { coords: newCoords } = await registerPasskey(label);
+        if (provider) {
+          const addr = await predictAccountAddress(provider, newCoords.qx, newCoords.qy);
+          setAddress(addr);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         throw e;
@@ -35,7 +43,7 @@ export function usePasskeyAccount() {
         setBusy(false);
       }
     },
-    [refreshAddress],
+    [provider],
   );
 
   const signUserOp = useCallback(async (userOpHash: string) => {
@@ -44,7 +52,7 @@ export function usePasskeyAccount() {
 
   return {
     configured,
-    coords,
+    coords: loadStoredPasskeyCoords(),
     address,
     busy,
     error,

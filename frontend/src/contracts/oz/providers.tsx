@@ -2,10 +2,8 @@ import { useMemo, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RuntimeProvider, WalletStateProvider } from '@openzeppelin/ui-react';
 import { ecosystemDefinition, ethereumMainnet } from '@openzeppelin/adapter-evm';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import '@rainbow-me/rainbowkit/styles.css';
 import type { NetworkConfig } from '@openzeppelin/ui-types';
-import { env } from '../../config/env';
+import { env, isForkMode } from '../../config/env';
 
 const queryClient = new QueryClient();
 
@@ -34,25 +32,25 @@ function getNetworkConfigById(networkId: string): NetworkConfig | null {
 }
 
 async function resolveRuntime(networkConfig: NetworkConfig) {
-  return ecosystemDefinition.createRuntime('transactor', networkConfig);
+  return ecosystemDefinition.createRuntime('composer', networkConfig);
 }
 
-export function OzDebugProviders({ children }: { children: ReactNode }) {
-  const initialNetworkId = useMemo(() => forkNetwork.id, []);
+export function OzContractsProviders({ children }: { children: ReactNode }) {
+  const initialNetworkId = useMemo(
+    () => (isForkMode() ? forkNetwork.id : ethereumMainnet.id),
+    [],
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Wagmi context comes from main.tsx; RainbowKit only needs to sit inside it. */}
-      <RainbowKitProvider>
-        <RuntimeProvider resolveRuntime={resolveRuntime}>
-          <WalletStateProvider
-            initialNetworkId={initialNetworkId}
-            getNetworkConfigById={getNetworkConfigById}
-          >
-            {children}
-          </WalletStateProvider>
-        </RuntimeProvider>
-      </RainbowKitProvider>
+      <RuntimeProvider resolveRuntime={resolveRuntime}>
+        <WalletStateProvider
+          initialNetworkId={initialNetworkId}
+          getNetworkConfigById={getNetworkConfigById}
+        >
+          {children}
+        </WalletStateProvider>
+      </RuntimeProvider>
     </QueryClientProvider>
   );
 }

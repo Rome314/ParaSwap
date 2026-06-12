@@ -1,5 +1,5 @@
 import { AbiCoder, Interface, solidityPacked } from 'ethers';
-import { aaConfig, paymasterFor, type GasToken } from './config';
+import { aaConfig, aaTokens, paymasterFor, type GasToken } from './config';
 
 const USER_OP_TUPLE =
   '(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData,bytes signature)';
@@ -9,10 +9,43 @@ export const ENTRYPOINT_ABI = [
   `function getUserOpHash(${USER_OP_TUPLE} userOp) view returns (bytes32)`,
 ] as const;
 
+const TOKEN_APPROVAL_TUPLE = '(address token,address spender,uint256 amount)';
+
 export const ACCOUNT_FACTORY_ABI = [
   'function predictAddress(bytes callData) view returns (address)',
   'function cloneAndInitialize(bytes callData) returns (address)',
+  `function cloneAndInitializeWithApprovals(bytes callData, ${TOKEN_APPROVAL_TUPLE}[] approvals) returns (address)`,
+  'function getImplementation() view returns (address)',
+  'function getEip7702Implementation() view returns (address)',
+  'function isAllowedSpender(address spender) view returns (bool)',
 ] as const;
+
+/** Creation-time ERC-20 allowance granted by a smart account. */
+export interface TokenApproval {
+  token: string;
+  spender: string;
+  amount: bigint;
+}
+
+export const MAX_UINT256 = (1n << 256n) - 1n;
+
+/**
+ * Default creation-time approval set: A7A5 / WA7A5 / USDT → PoolsFacade and ParaSwap,
+ * plus each paymaster's gas token → paymaster. Amounts default to max uint256.
+ */
+export function defaultApprovals(amount = MAX_UINT256): TokenApproval[] {
+  const { poolsFacade, paraSwap, a7a5Paymaster, usdtPaymaster } = aaConfig;
+  return [
+    { token: aaTokens.a7a5, spender: poolsFacade, amount },
+    { token: aaTokens.wa7a5, spender: poolsFacade, amount },
+    { token: aaTokens.usdt, spender: poolsFacade, amount },
+    { token: aaTokens.a7a5, spender: paraSwap, amount },
+    { token: aaTokens.wa7a5, spender: paraSwap, amount },
+    { token: aaTokens.usdt, spender: paraSwap, amount },
+    { token: aaTokens.a7a5, spender: a7a5Paymaster, amount },
+    { token: aaTokens.usdt, spender: usdtPaymaster, amount },
+  ].filter((a) => a.token && a.spender);
+}
 
 export const WEBAUTHN_ACCOUNT_ABI = [
   'function initializeWebAuthn(bytes32 qx, bytes32 qy)',
@@ -54,10 +87,52 @@ export function buildInitCode(factoryAddress: string, initializeCalldata: string
   return solidityPacked(['address', 'bytes'], [factoryAddress, factoryData]);
 }
 
+/** Encode cloneAndInitializeWithApprovals(callData, approvals) factory calldata. */
+export function encodeCloneWithApprovals(
+  initializeCalldata: string,
+  approvals: TokenApproval[],
+): string {
+  const iface = new Interface(ACCOUNT_FACTORY_ABI);
+  return iface.encodeFunctionData('cloneAndInitializeWithApprovals', [
+    initializeCalldata,
+    approvals.map((a) => [a.token, a.spender, a.amount]),
+  ]);
+}
+
+/** Build ERC-4337 initCode that grants creation-time approvals during deployment. */
+export function buildInitCodeWithApprovals(
+  factoryAddress: string,
+  initializeCalldata: string,
+  approvals: TokenApproval[],
+): string {
+  return solidityPacked(
+    ['address', 'bytes'],
+    [factoryAddress, encodeCloneWithApprovals(initializeCalldata, approvals)],
+  );
+}
+
 export function buildErc7821ExecuteCalldata(target: string, value: bigint, innerCalldata: string): string {
+  return buildErc7821BatchCalldata([{ target, value, calldata: innerCalldata }]);
+}
+
+/** ERC-20 approve calls for an ERC-7821 batch (post-creation approvals on EIP-7702 accounts). */
+export function buildApprovalBatchCalls(
+  approvals: TokenApproval[],
+): { target: string; value: bigint; calldata: string }[] {
+  const iface = new Interface(['function approve(address spender, uint256 amount) returns (bool)']);
+  return approvals.map((a) => ({
+    target: a.token,
+    value: 0n,
+    calldata: iface.encodeFunctionData('approve', [a.spender, a.amount]),
+  }));
+}
+
+export function buildErc7821BatchCalldata(
+  calls: { target: string; value: bigint; calldata: string }[],
+): string {
   const executionData = AbiCoder.defaultAbiCoder().encode(
     ['tuple(address target, uint256 value, bytes callData)[]'],
-    [[[target, value, innerCalldata]]],
+    [calls.map((c) => [c.target, c.value, c.calldata])],
   );
   const iface = new Interface(WEBAUTHN_ACCOUNT_ABI);
   return iface.encodeFunctionData('execute', [ERC7821_BATCH_MODE, executionData]);
@@ -138,8 +213,14 @@ export async function predictAccountAddress(
   qy: string,
   factory = aaConfig.accountFactory,
 ): Promise<string> {
-  const { Contract } = await import('ethers');
+  const { Contract, getAddress } = await import('ethers');
+  // Normalize to correct EIP-55 checksum (fork:deploy may output non-checksummed addresses)
+  const addr = getAddress(factory.toLowerCase());
+  const code = await provider.getCode(addr);
+  if (code === '0x') {
+    throw new Error(`Factory not deployed at ${addr} — run npm run fork:deploy and reload env vars`);
+  }
   const initCalldata = encodeInitializeWebAuthn(qx, qy);
-  const f = new Contract(factory, ACCOUNT_FACTORY_ABI, provider);
+  const f = new Contract(addr, ACCOUNT_FACTORY_ABI, provider);
   return f.predictAddress(initCalldata) as Promise<string>;
 }

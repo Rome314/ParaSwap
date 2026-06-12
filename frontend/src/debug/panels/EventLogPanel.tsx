@@ -26,11 +26,14 @@ export function EventLogPanel() {
       const provider = new JsonRpcProvider(env.forkRpcUrl, 1, { staticNetwork: true });
       const latest = await provider.getBlockNumber();
       const from = Math.max(0, latest - 500);
+      const fallbackFrom = Math.max(0, latest - 9);
       const collected: DebugEvent[] = [];
 
       if (aaConfig.entryPoint) {
         const ep = new Contract(aaConfig.entryPoint, ENTRYPOINT_EXTENDED_ABI, provider);
-        const logs = await ep.queryFilter(ep.filters.UserOperationEvent(), from, latest);
+        const logs = await ep
+          .queryFilter(ep.filters.UserOperationEvent(), from, latest)
+          .catch(() => ep.queryFilter(ep.filters.UserOperationEvent(), fallbackFrom, latest));
         for (const log of logs.slice(-10)) {
           const parsed = ep.interface.parseLog(log);
           if (!parsed) continue;
@@ -51,7 +54,9 @@ export function EventLogPanel() {
       ] as const) {
         if (!addr) continue;
         const pm = new Contract(addr, PAYMASTER_ABI, provider);
-        const deposits = await pm.queryFilter(pm.filters.TokenPayment(), from, latest);
+        const deposits = await pm
+          .queryFilter(pm.filters.TokenPayment(), from, latest)
+          .catch(() => pm.queryFilter(pm.filters.TokenPayment(), fallbackFrom, latest));
         for (const log of deposits.slice(-5)) {
           const parsed = pm.interface.parseLog(log);
           if (!parsed) continue;
@@ -68,7 +73,9 @@ export function EventLogPanel() {
 
       if (aaConfig.a7a5NativeOracle) {
         const oracle = new Contract(aaConfig.a7a5NativeOracle, A7A5_NATIVE_ORACLE_ABI, provider);
-        const staleness = await oracle.queryFilter(oracle.filters.MaxStalenessUpdated(), from, latest);
+        const staleness = await oracle
+          .queryFilter(oracle.filters.MaxStalenessUpdated(), from, latest)
+          .catch(() => oracle.queryFilter(oracle.filters.MaxStalenessUpdated(), fallbackFrom, latest));
         for (const log of staleness.slice(-3)) {
           const parsed = oracle.interface.parseLog(log);
           if (!parsed) continue;
@@ -99,7 +106,7 @@ export function EventLogPanel() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Recent events (last ~500 blocks)</CardTitle>
+        <CardTitle>Recent events (last ~500 blocks, 10-block fallback)</CardTitle>
         <Button size="sm" variant="outline" onClick={() => void refresh()} disabled={loading}>
           Refresh
         </Button>

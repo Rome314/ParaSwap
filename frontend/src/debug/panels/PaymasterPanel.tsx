@@ -14,6 +14,8 @@ export function PaymasterPanel() {
         </Button>
       </div>
 
+      {pm.error && <p className="text-destructive text-sm">{pm.error}</p>}
+
       {pm.snapshots.map((snap) => (
         <Card key={snap.address}>
           <CardHeader>

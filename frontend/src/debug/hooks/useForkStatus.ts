@@ -51,12 +51,16 @@ export function useForkStatus() {
 
       let entryPointDeposit: ForkStatus['entryPointDeposit'];
       if (aaConfig.entryPoint && aaConfig.a7a5Paymaster && aaConfig.usdtPaymaster) {
-        const ep = new Contract(aaConfig.entryPoint, ENTRYPOINT_EXTENDED_ABI, provider);
-        const [a7a5Dep, usdtDep] = await Promise.all([
-          ep.balanceOf(aaConfig.a7a5Paymaster) as Promise<bigint>,
-          ep.balanceOf(aaConfig.usdtPaymaster) as Promise<bigint>,
-        ]);
-        entryPointDeposit = { a7a5: a7a5Dep, usdt: usdtDep };
+        try {
+          const ep = new Contract(aaConfig.entryPoint, ENTRYPOINT_EXTENDED_ABI, provider);
+          const [a7a5Dep, usdtDep] = await Promise.all([
+            ep.balanceOf(aaConfig.a7a5Paymaster) as Promise<bigint>,
+            ep.balanceOf(aaConfig.usdtPaymaster) as Promise<bigint>,
+          ]);
+          entryPointDeposit = { a7a5: a7a5Dep, usdt: usdtDep };
+        } catch {
+          // EntryPoint not yet deployed on this fork — deposits unavailable
+        }
       }
 
       setStatus({

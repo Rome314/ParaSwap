@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Contract, Interface, JsonRpcProvider } from 'ethers';
-import { aaConfig, type GasToken } from '../../lib/aa/config';
+import { aaConfig, paymasterFor, type GasToken } from '../../lib/aa/config';
 import { env } from '../../config/env';
 import {
   estimateUserOperationGas,
@@ -8,9 +8,9 @@ import {
   sendUserOperation,
   type UserOperationReceipt,
 } from '../../lib/aa/bundler';
-import { PARASWAP_ABI } from '../../lib/aa/abis';
+import { PARASWAP_ABI, ERC20_ABI } from '../../lib/aa/abis';
 import {
-  buildErc7821ExecuteCalldata,
+  buildErc7821BatchCalldata,
   buildInitCode,
   buildUserOp,
   attachWebAuthnSignature,
@@ -69,6 +69,7 @@ export function useUserOpPipeline(opts: {
 
   const buildSwapCallData = useCallback((preset: SwapPreset) => {
     if (!aaConfig.paraSwap) throw new Error('VITE_PARASWAP not configured');
+    const approveIface = new Interface(ERC20_ABI);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
     const swapData = new Interface(PARASWAP_ABI).encodeFunctionData('swap', [
       preset.tokenIn,
@@ -78,7 +79,20 @@ export function useUserOpPipeline(opts: {
       V3_FEE,
       deadline,
     ]);
-    return buildErc7821ExecuteCalldata(aaConfig.paraSwap, 0n, swapData);
+    const pmAddr = paymasterFor(preset.gasToken);
+    return buildErc7821BatchCalldata([
+      {
+        target: preset.tokenIn,
+        value: 0n,
+        calldata: approveIface.encodeFunctionData('approve', [aaConfig.paraSwap, 2n ** 256n - 1n]),
+      },
+      {
+        target: preset.tokenIn,
+        value: 0n,
+        calldata: approveIface.encodeFunctionData('approve', [pmAddr, 2n ** 256n - 1n]),
+      },
+      { target: aaConfig.paraSwap, value: 0n, calldata: swapData },
+    ]);
   }, []);
 
   const build = useCallback(

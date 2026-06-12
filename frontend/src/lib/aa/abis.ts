@@ -62,4 +62,20 @@ export const V3_POOL_ABI = [
 
 export const PARASWAP_ABI = [
   'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, uint24 fee, uint256 deadline) returns (uint256)',
+  'function quote(address tokenIn, address tokenOut, uint256 amountIn, uint24 fee) returns (uint256 amountOut)',
+] as const;
+
+// SIDE: 0 = BUY (USDT in), 1 = SELL (A7A5/wA7A5 in). Quote functions are non-view
+// (V3 quoter writes) — call them via eth_call / staticCall.
+export const POOLS_FACADE_ABI = [
+  'function swapA7A5(uint256 amountIn, uint8 side, uint256 amountOutMin, uint256 deadline) returns (uint256 amountOut)',
+  'function swapWA7A5(uint256 amountIn, uint8 side, uint256 amountOutMin, uint256 deadline) returns (uint256 amountOut)',
+  'function swapA7A5AtBestQuote(uint256 amountIn, uint8 side, uint256 amountOutMin, uint256 deadline) returns (uint256 amountOut)',
+  'function getBestQuoteA7A5PerUSDT(uint256 amountIn, uint8 side) returns (uint256 amountOut, uint8 strategy)',
+  'function quoteA7A5PerUSDT(uint256 amountIn, uint8 side) view returns (uint256 amountOut)',
+  'function quoteWA7A5PerUSDT(uint256 amountIn, uint8 side) returns (uint256 amountOut)',
+  'function getA7A5EffectiveOutput(uint256 amountIn) view returns (uint256)',
+  'function allowanceUSDT(address owner) view returns (uint256)',
+  'function allowanceA7A5(address owner) view returns (uint256)',
+  'function allowanceWA7A5(address owner) view returns (uint256)',
 ] as const;
