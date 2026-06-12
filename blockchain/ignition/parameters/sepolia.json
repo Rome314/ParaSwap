@@ -1,0 +1,36 @@
+{
+  "A7A5AA_Sepolia": {
+    "modulePath": "./ignition/modules/A7A5AA_Sepolia.ts"
+  },
+  "SepoliaMocks": {
+    "modulePath": "./ignition/modules/SepoliaMocks.ts",
+    "parameters": {
+      "wa7a5Ratio": "1000000",
+      "ethPerUsdt": "400000000000000",
+      "feedUpdatedAt": "1704067200"
+    }
+  },
+  "SepoliaOracleStack": {
+    "modulePath": "./ignition/modules/SepoliaOracleStack.ts",
+    "parameters": {
+      "twapWindow": "60",
+      "maxStaleness": "172800",
+      "twapCumulativeOlder": "-276324",
+      "twapCumulativeNewer": "0"
+    }
+  },
+  "SepoliaPaymasters": {
+    "modulePath": "./ignition/modules/SepoliaPaymasters.ts",
+    "parameters": {
+      "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+      "depositWei": "1000000000000000000",
+      "stakeWei": "500000000000000000"
+    }
+  },
+  "AccountSystem": {
+    "modulePath": "./ignition/modules/AccountSystem.ts",
+    "parameters": {
+      "entryPoint": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108"
+    }
+  }
+}

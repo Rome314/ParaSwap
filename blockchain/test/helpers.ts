@@ -3,6 +3,12 @@ import {ERC20_TRANSFER_ABI} from '../common/abi.js';
 import type {BigNumberish} from 'ethers/utils';
 import {formatUnits} from 'ethers';
 
+export const A7A5_MAX_ROUNDING_ERROR = 5n;
+
+export function checkRoundingError(actual: bigint, quoted: bigint) {
+  return abs(actual, quoted) <= A7A5_MAX_ROUNDING_ERROR;
+}
+
 export function formatUnits6(input: BigNumberish): string {
   return formatUnits(input, 6);
 }

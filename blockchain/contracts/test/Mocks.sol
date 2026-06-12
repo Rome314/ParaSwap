@@ -5,6 +5,7 @@ import {
     IAccount,
     PackedUserOperation
 } from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // ── Mock Chainlink AggregatorV3Interface ─────────────────────────────────────
 
@@ -111,6 +112,16 @@ contract MockToken {
     }
     function decimals() external view returns (uint8) {
         return _dec;
+    }
+}
+
+// ── Mock mintable ERC-20 (full allowance/transfer semantics) ─────────────────
+
+contract MockERC20 is ERC20 {
+    constructor() ERC20("Mock", "MCK") {}
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
     }
 }
 

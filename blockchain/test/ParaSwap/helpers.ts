@@ -1,13 +1,12 @@
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
 import {IWA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IWA7A5__factory.js';
 import {ADDRESSES} from '../../common/addresses.js';
-import {HardhatEthersSigner, HardhatEthersProvider} from '@nomicfoundation/hardhat-ethers/types';
-import type {TransactionReceipt} from 'ethers';
+import type {Signer, TransactionReceipt} from 'ethers';
 import {ethers} from './consts.js';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-export function tokens(trader?: HardhatEthersSigner) {
+export function tokens(trader?: Signer) {
   const prov = trader ?? ethers.provider;
   return {
     usdt: IA7A5__factory.connect(ADDRESSES.USDT, prov),

@@ -20,6 +20,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IA7A5} from "../interfaces/IA7A5.sol";
 import {A7A5NativeOracle} from "../oracle/A7A5NativeOracle.sol";
+import {ITokenPaymaster} from "./ITokenPaymaster.sol";
 
 // ── Errors ──────────────────────────────────────────────────────────────────────
 
@@ -46,14 +47,14 @@ error A7A5Paymaster__ZeroAddress();
  *     without reverting during validation (ERC-7562 friendly). An emergency {pause} short-circuits
  *     validation by returning `SIG_VALIDATION_FAILED`.
  */
-contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
+contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable, ITokenPaymaster {
     using ERC4337Utils for PackedUserOperation;
     using SafeERC20 for IERC20;
     using Math for uint256;
 
     IEntryPoint private immutable _ENTRY_POINT;
     IA7A5 public immutable A7A5;
-    A7A5NativeOracle public oracle;
+    A7A5NativeOracle private _oracle;
 
     // ── Events ────────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,17 @@ contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
         }
         _ENTRY_POINT = entryPoint_;
         A7A5 = a7a5;
-        oracle = oracle_;
+        _oracle = oracle_;
+    }
+
+    /// @inheritdoc ITokenPaymaster
+    function gasToken() external view returns (address) {
+        return address(A7A5);
+    }
+
+    /// @inheritdoc ITokenPaymaster
+    function oracle() external view returns (address) {
+        return address(_oracle);
     }
 
     // ── Admin ───────────────────────────────────────────────────────────────────
@@ -89,8 +100,8 @@ contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
     function setOracle(A7A5NativeOracle newOracle) external onlyOwner {
         if (address(newOracle) == address(0))
             revert A7A5Paymaster__ZeroAddress();
-        emit OracleUpdated(address(oracle), address(newOracle));
-        oracle = newOracle;
+        emit OracleUpdated(address(_oracle), address(newOracle));
+        _oracle = newOracle;
     }
 
     /// @notice Emergency stop: new operations stop being sponsored (validation fails, no revert).
@@ -128,7 +139,7 @@ contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable {
             return (ERC4337Utils.SIG_VALIDATION_FAILED, token, 0);
         }
         uint48 validUntil;
-        (tokenPrice, validUntil) = oracle.tokenPriceData();
+        (tokenPrice, validUntil) = _oracle.tokenPriceData();
         validationData = ERC4337Utils.packValidationData(true, 0, validUntil);
     }
 

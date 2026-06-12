@@ -8,13 +8,14 @@ import { useProtocolState } from '../../hooks/useProtocolState';
 import { getAddresses } from '../../config/addresses';
 import { EthWallet } from './Eth';
 import { TronWallet } from './Tron';
+import { PasskeyWallet } from './PasskeyWallet';
 import { WalletPickerModal } from './WalletPickerModal';
 
 export function Wallet() {
   const { t } = useLang();
 
-  const [walletChain, setWalletChain] = useState<'eth' | 'tron'>(
-    () => (localStorage.getItem('walletChain') as 'eth' | 'tron') ?? 'eth'
+  const [walletChain, setWalletChain] = useState<'eth' | 'passkey' | 'tron'>(
+    () => (localStorage.getItem('walletChain') as 'eth' | 'passkey' | 'tron') ?? 'eth'
   );
 
   // Protocol status badges
@@ -77,7 +78,7 @@ export function Wallet() {
     // useTronWallet effect re-runs when selectedTronProvider changes and calls tron_requestAccounts
   }
 
-  function handleSwitchChain(c: 'eth' | 'tron') {
+  function handleSwitchChain(c: 'eth' | 'passkey' | 'tron') {
     setWalletChain(c);
     localStorage.setItem('walletChain', c);
   }
@@ -172,6 +173,14 @@ export function Wallet() {
             ⟠ {t.chainSwitch.eth}
           </button>
           <button
+            onClick={() => handleSwitchChain('passkey')}
+            className={`cursor-pointer rounded-md border-none px-4 py-1.5 font-mono text-xs font-bold transition-all ${
+              walletChain === 'passkey' ? 'bg-accent text-black' : 'bg-transparent text-muted hover:text-ink'
+            }`}
+          >
+            🔑 Passkey
+          </button>
+          <button
             onClick={() => handleSwitchChain('tron')}
             className={`cursor-pointer rounded-md border-none px-4 py-1.5 font-mono text-xs font-bold transition-all ${
               walletChain === 'tron'
@@ -185,7 +194,13 @@ export function Wallet() {
       </div>
 
       {/* Wallet panel */}
-      {walletChain === 'eth' ? <EthWallet /> : <TronWallet tronWallet={tronWallet} onConnect={handleConnectTron} />}
+      {walletChain === 'eth' ? (
+        <EthWallet />
+      ) : walletChain === 'passkey' ? (
+        <PasskeyWallet />
+      ) : (
+        <TronWallet tronWallet={tronWallet} onConnect={handleConnectTron} />
+      )}
 
       {/* ETH wallet picker modal */}
       {showEthPicker && (

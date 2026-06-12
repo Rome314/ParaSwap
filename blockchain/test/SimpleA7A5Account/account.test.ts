@@ -29,9 +29,7 @@ describe('SimpleA7A5Account', function () {
   // Line 30: constructor reverts on zero address
   describe('constructor', function () {
     it('reverts when entryPoint is the zero address', async function () {
-      await expect(
-        ethers.deployContract('SimpleA7A5Account', [ZERO, ethers.Wallet.createRandom().address]),
-      ).to.be.revertedWithCustomError(
+      await expect(ethers.deployContract('SimpleA7A5Account', [ZERO, ethers.Wallet.createRandom().address])).to.be.revertedWithCustomError(
         {interface: (await ethers.getContractFactory('SimpleA7A5Account')).interface} as any,
         'SimpleA7A5Account__ZeroAddress',
       );
@@ -40,9 +38,7 @@ describe('SimpleA7A5Account', function () {
     it('reverts when owner is the zero address', async function () {
       const ep = await ethers.deployContract('MockEntryPoint');
       await ep.waitForDeployment();
-      await expect(
-        ethers.deployContract('SimpleA7A5Account', [await ep.getAddress(), ZERO]),
-      ).to.be.revertedWithCustomError(
+      await expect(ethers.deployContract('SimpleA7A5Account', [await ep.getAddress(), ZERO])).to.be.revertedWithCustomError(
         {interface: (await ethers.getContractFactory('SimpleA7A5Account')).interface} as any,
         'SimpleA7A5Account__ZeroAddress',
       );
@@ -117,6 +113,7 @@ describe('SimpleA7A5Account', function () {
 
     it('emits Executed on success', async function () {
       const {ownerWallet, account} = await deploy();
+      await networkHelpers.setBalance(ownerWallet.address, ethers.parseEther('1'));
       const target = await ethers.deployContract('RevertingTarget');
       await target.waitForDeployment();
       const targetAddr = await target.getAddress();
