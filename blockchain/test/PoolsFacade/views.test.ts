@@ -1,11 +1,18 @@
 import {expect} from 'chai';
-import {fundFromWhale} from '../helpers.js';
+import {fundFromWhale, forkReady} from '../helpers.js';
 import {A7A5_IN, conn, ethers, FAR_DEADLINE, loadFixture, provider, SIDE, STRATEGY, USDT_IN, WA7A5_IN} from './consts.js';
 import {deployFacadeFixture} from './fixtures.js';
 import {ADDRESSES} from '../../common/addresses.js';
 import {readV2Reserves, revertMsg, setV2Reserve, tokens, zeroV2Reserves} from './helpers.js';
 
 describe('quote', function () {
+  if (!forkReady(ADDRESSES.A7A5, ADDRESSES.WA7A5)) {
+    it.skip('requires MAINNET_FORK=1 and real A7A5/WA7A5 addresses', () => {
+      console.log('MAINNET_FORK=1 and real A7A5/WA7A5 addresses');
+    });
+    return;
+  }
+
   it('quoteA7A5PerUSDT BUY: positive output ≤ V2 spot, within 10% of spot', async () => {
     console.log('\n  ── quoteA7A5PerUSDT BUY ───────────────────────────────');
     const {facade} = await loadFixture(deployFacadeFixture);
@@ -171,6 +178,11 @@ describe('quote', function () {
 });
 
 describe('allowances', function () {
+  if (!forkReady(ADDRESSES.A7A5, ADDRESSES.WA7A5)) {
+    it.skip('requires MAINNET_FORK=1 and real A7A5/WA7A5 addresses', () => {});
+    return;
+  }
+
   it('allowanceUSDT / A7A5 / WA7A5 all return 0 before any approval', async () => {
     console.log('\n  ── Allowance helpers: default zero ────────────────────');
     const {facade, traderAddr} = await loadFixture(deployFacadeFixture);

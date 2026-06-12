@@ -16,6 +16,8 @@ backend/                    Go HTTP stub (reads synced ABIs + addresses.json)
 docs/                       Permit2 explainer
 ```
 
+See [`docs/account-abstraction/README.md`](docs/account-abstraction/README.md) for the ERC-4337 passkey + token paymaster stack.
+
 ## Quickstart (Docker Compose)
 
 1. Copy env template and fill in your Alchemy key:
@@ -69,11 +71,24 @@ cd subgraph && docker compose up -d && npm run deploy-local
 
 Set `PARASWAP_ADDRESS` and `POOLS_FACADE_ADDRESS` in `subgraph/networks.json` after deploy. See [subgraph/README.md](subgraph/README.md).
 
+npm install
+ALCHEMY_API_KEY=… A7A5_ADDRESS=0x… WA7A5_ADDRESS=0x… \
+  A7A5_WHALE=0x… WA7A5_WHALE=0x… MAINNET_FORK=1 npm test
+```
+
+Account-abstraction fork suite:
+
+```bash
+cd blockchain
+MAINNET_FORK=1 ALCHEMY_API_KEY=… npm run test:fork:aa
+```
+
 ## What the UI does
 
 | Section | What it does |
 |---|---|
 | **Wallet** | Shows ETH, A7A5, wA7A5, USDT balances. Warns if A7A5 is paused or address is blacklisted. Displays current transfer fee (basisPointsRate). |
+| **Passkey** | WebAuthn smart account tab — counterfactual address, ERC-4337 config (when env vars set). |
 | **Wrap / Unwrap** | `A7A5.approve(wA7A5)` → `wA7A5.wrap(amount)` or `wA7A5.unwrap(amount)`. |
 | **Swap** | Quote → `token.approve(Permit2, MAX)` (once) → `Permit2.approve(UR, MAX, expiry)` (once) → `UniversalRouter.execute`. A7A5→USDT via V2; wA7A5→USDT via V3. |
 
@@ -83,4 +98,4 @@ See [`docs/PERMIT2.md`](docs/PERMIT2.md) for the approval model.
 
 - Ethereum only — all UI copy says "Ethereum".
 - No smart routing — user picks A7A5 (V2) or wA7A5 (V3) manually.
-- No custom router contract, paymaster, or Tron in the default UI path.
+- ERC-4337: WebAuthn account + A7A5/USDT paymasters (no Gas Manager). Tron remains separate.

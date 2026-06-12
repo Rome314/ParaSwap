@@ -1,4 +1,17 @@
 {
+  // Language servers: use each package's TypeScript (blockchain/ or frontend/)
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "typescript.suggest.autoImports": true,
+  "editor.quickSuggestions": {
+    "other": "on",
+    "comments": "off",
+    "strings": "on"
+  },
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.wordBasedSuggestions": "matchingDocuments",
+  "editor.parameterHints.enabled": true,
+
   // Format on save with Prettier for all relevant file types
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",

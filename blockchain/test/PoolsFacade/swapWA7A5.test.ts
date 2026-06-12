@@ -4,10 +4,16 @@ import {ethers, FAR_DEADLINE, loadFixture, networkHelpers, PAST_DEADLINE, SIDE, 
 import {buyFixture, deployFacadeFixture, v3SellFixture} from './fixtures.js';
 import {gasUsedEthStr, revertMsg, tokens} from './helpers.js';
 import {expect} from 'chai';
-import {abs, formatUnits6} from '../helpers.js';
+import {abs, formatUnits6, forkReady} from '../helpers.js';
+import {ADDRESSES} from '../../common/addresses.js';
 
 // ── swapWA7A5 ────────────────────────────────────────────────────────────
 describe('swapWA7A5', function () {
+  if (!forkReady(ADDRESSES.A7A5, ADDRESSES.WA7A5)) {
+    it.skip('requires MAINNET_FORK=1 and real A7A5/WA7A5 addresses', () => {});
+    return;
+  }
+
   let facade: PoolsFacade;
   let facadeAddr: string;
   let trader: HardhatEthersSigner;

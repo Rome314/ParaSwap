@@ -2,7 +2,7 @@ import {expect} from 'chai';
 
 import {ADDRESSES} from '../../common/addresses.js';
 import {buildSignedUserOp} from '../../common/erc4337.js';
-import {fundFromWhale, forkReady} from '../helpers.js';
+import {fundFromWhale, forkReady, formatUnits6} from '../helpers.js';
 import {conn, ethers, networkHelpers, loadFixture, A7A5_SWAP_IN, A7A5_GAS_FUNDING, MAX_STALENESS, FAR_DEADLINE} from './consts.js';
 import {deployPaymasterStackFixture, approveFromAccount} from './fixtures.js';
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
@@ -42,6 +42,7 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
     it('A7A5/USDT TWAP returns a positive 8-decimal price', async function () {
       const {twap} = await loadFixture(deployPaymasterStackFixture);
       const answer: bigint = await (twap as any).latestAnswer();
+      console.log(`  USDT/A7A5 TWAP: ${formatUnits6(100_000_000_000_000n / answer)} A7A5 per USDT`);
       expect(answer).to.be.greaterThan(0n);
       expect(await (twap as any).decimals()).to.equal(8n);
     });
@@ -49,6 +50,8 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
     it('native oracle yields a positive tokenPrice valid into the future', async function () {
       const {oracle} = await loadFixture(deployPaymasterStackFixture);
       const [price, validUntil] = await (oracle as any).tokenPriceData();
+      console.log(`Oracle price: ${formatUnits6(price)} A7A5 per USDT`);
+      console.log(`Oracle validUntil: ${new Date(Number(validUntil) * 1000).toISOString()}`);
       expect(price).to.be.greaterThan(0n);
       const now = BigInt((await ethers.provider.getBlock('latest'))!.timestamp);
       expect(validUntil).to.be.greaterThan(now);
@@ -63,6 +66,22 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
   });
 
   describe('Access control', function () {
+    it('allows withdrawal by the owner', async function () {
+      const {paymaster, deployer, ownerAddr, entryPoint, paymasterAddr} = await loadFixture(deployPaymasterStackFixture);
+
+      const WITHDRAW_AMOUNT = ethers.parseEther('1');
+      const recipientEthBefore = await ethers.provider.getBalance(ownerAddr);
+      const pmDepositBefore = await (entryPoint as any).balanceOf(paymasterAddr);
+
+      await (await (paymaster as any).connect(deployer).withdraw(ownerAddr, WITHDRAW_AMOUNT)).wait();
+
+      const recipientEthAfter = await ethers.provider.getBalance(ownerAddr);
+      const pmDepositAfter = await (entryPoint as any).balanceOf(paymasterAddr);
+
+      expect(recipientEthAfter - recipientEthBefore).to.equal(WITHDRAW_AMOUNT);
+      expect(pmDepositBefore - pmDepositAfter).to.equal(WITHDRAW_AMOUNT);
+    });
+
     it('only the owner can withdraw the EntryPoint deposit', async function () {
       const {paymaster, owner, deployerAddr} = await loadFixture(deployPaymasterStackFixture);
       await expect((paymaster as any).connect(owner).withdraw(deployerAddr, 1n)).to.be.revertedWithCustomError(
@@ -100,6 +119,27 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
       const pmA7A5After: bigint = await a7a5(ethers.provider).balanceOf(f.paymasterAddr);
       const pmDepositAfter: bigint = await (f.entryPoint as any).balanceOf(f.paymasterAddr);
 
+      const gasInA7A5 = pmA7A5After - pmA7A5Before;
+      const gasInEth = pmDepositBefore - pmDepositAfter;
+
+      console.log('  ── Before ────────────────────────────────────────────');
+      console.log(`  Account  USDT:      ${formatUnits6(accUsdtBefore)}`);
+      console.log(`  Account  A7A5:      ${formatUnits6(accA7A5Before)}`);
+      console.log(`  Account  ETH:       ${ethers.formatEther(accEthBefore)} ETH`);
+      console.log(`  Paymaster A7A5:     ${formatUnits6(pmA7A5Before)}`);
+      console.log(`  Paymaster deposit:  ${ethers.formatEther(pmDepositBefore)} ETH`);
+      console.log('  ── After ─────────────────────────────────────────────');
+      console.log(`  Account  USDT:      ${formatUnits6(accUsdtAfter)}`);
+      console.log(`  Account  A7A5:      ${formatUnits6(accA7A5After)}`);
+      console.log(`  Account  ETH:       ${ethers.formatEther(accEthAfter)} ETH`);
+      console.log(`  Paymaster A7A5:     ${formatUnits6(pmA7A5After)}`);
+      console.log(`  Paymaster deposit:  ${ethers.formatEther(pmDepositAfter)} ETH`);
+      console.log('  ── Deltas ────────────────────────────────────────────');
+      console.log(`  USDT received:       +${formatUnits6(accUsdtAfter - accUsdtBefore)}`);
+      console.log(`  A7A5 lost:           -${formatUnits6(accA7A5Before - accA7A5After)}  (swap=${formatUnits6(A7A5_SWAP_IN)} + gas=${formatUnits6(gasInA7A5)})`);
+      console.log(`  Paymaster A7A5 gain: +${formatUnits6(gasInA7A5)}`);
+      console.log(`  Paymaster ETH spent: -${ethers.formatEther(gasInEth)} ETH`);
+
       // Swap happened: account received USDT.
       expect(accUsdtAfter - accUsdtBefore).to.be.greaterThan(0n);
       // Account never touched ETH.
@@ -109,6 +149,8 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
       // Paymaster was reimbursed in A7A5 and spent ETH deposit on gas.
       expect(pmA7A5After - pmA7A5Before).to.be.greaterThan(0n);
       expect(pmDepositBefore - pmDepositAfter).to.be.greaterThan(0n);
+      // Cross-math: every A7A5 wei that left the account = swap input + gas the paymaster kept.
+      expect(accA7A5Before - accA7A5After).to.equal(A7A5_SWAP_IN + gasInA7A5);
     });
   });
 

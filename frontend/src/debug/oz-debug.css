@@ -1,0 +1,11 @@
+@source "../../node_modules/@openzeppelin";
+
+@import '@openzeppelin/ui-styles/global.css';
+
+/* OZ theme tokens apply only inside the debug shell */
+.oz-debug {
+  min-height: 100vh;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+}

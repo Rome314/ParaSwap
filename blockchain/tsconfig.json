@@ -1,26 +1,25 @@
 {
-    "compilerOptions": {
-        "target": "ES2022",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "strict": true,
-        "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "skipLibCheck": true,
-        "outDir": "dist",
-        "rootDir": ".",
-        "types": [
-            "node",
-            "mocha"
-        ]
-    },
-    "allowImportingTsExtensions":true,
-    "include": [
-        "hardhat.config.ts",
-        "test/**/*",
-        "scripts/**/*",
-        "common/**/*",
-        "artifacts/**/*",
-        "types/**/*"
-    ]
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["node", "mocha"]
+  },
+  "include": [
+    "hardhat.config.ts",
+    "test/**/*",
+    "scripts/**/*",
+    "common/**/*",
+    "ignition/**/*",
+    "artifacts/**/*",
+    "types/**/*"
+  ]
 }

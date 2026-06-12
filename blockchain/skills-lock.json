@@ -19,6 +19,12 @@
       "skillPath": "skills/git-workflow/SKILL.md",
       "computedHash": "648f9588268110272a04294cc2ac0876577616467685a91f7529c7700c0d91a2"
     },
+    "hardhat-toolbox-mocha-ethers": {
+      "source": "nomicfoundation/hardhat-skills",
+      "sourceType": "github",
+      "skillPath": "skills/hardhat-toolbox-mocha-ethers/SKILL.md",
+      "computedHash": "c52dbc20380c14ac3bda6155194315a35178033368aa856981f53818cf3bacb5"
+    },
     "solidity": {
       "source": "mindrally/skills",
       "sourceType": "github",
