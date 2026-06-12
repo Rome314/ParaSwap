@@ -16,10 +16,40 @@ export const ENTRYPOINT_ABI = [
   'function addStake(uint32 unstakeDelaySec) payable',
 ] as const;
 
+const TOKEN_APPROVAL_TUPLE = '(address token,address spender,uint256 amount)';
+
 export const ACCOUNT_FACTORY_ABI = [
   'function predictAddress(bytes callData) view returns (address)',
   'function cloneAndInitialize(bytes callData) returns (address)',
+  `function cloneAndInitializeWithApprovals(bytes callData, ${TOKEN_APPROVAL_TUPLE}[] approvals) returns (address)`,
   'function getImplementation() view returns (address)',
+  'function getEip7702Implementation() view returns (address)',
+  'function isAllowedSpender(address spender) view returns (bool)',
+] as const;
+
+export const ECDSA_ACCOUNT_FACTORY_V2_ABI = [
+  'function predictAddress(address owner_) view returns (address)',
+  'function deployAccount(address owner_) returns (address)',
+  `function deployAccountWithApprovals(address owner_, ${TOKEN_APPROVAL_TUPLE}[] approvals) returns (address)`,
+  'function getImplementation() view returns (address)',
+  'function isAllowedSpender(address spender) view returns (bool)',
+] as const;
+
+export const ECDSA_ACCOUNT_ABI = [
+  'function owner() view returns (address)',
+  'function initialize(address owner_)',
+  'function initializeApprovals((address token, address spender, uint256 amount)[] approvals)',
+  'function execute(bytes32 mode, bytes executionData) payable',
+  'function setApproval(address token, address spender, uint256 amount)',
+  'function setApprovals((address token, address spender, uint256 amount)[] approvals)',
+  'function withdrawToken(address token, uint256 amount)',
+  'function withdrawTokenAll(address token)',
+  'function withdrawNative(uint256 amount)',
+  'function withdrawNativeAll()',
+  'function withdrawERC721(address nft, uint256 tokenId)',
+  'function withdrawERC1155(address nft, uint256 id, uint256 amount, bytes data)',
+  'function upgradeToAndCall(address newImplementation, bytes data) payable',
+  'function entryPoint() view returns (address)',
 ] as const;
 
 export const WEBAUTHN_ACCOUNT_ABI = [
@@ -32,6 +62,38 @@ export const WEBAUTHN_ACCOUNT_ABI = [
 // ERC-7821 batch mode: callType=0x01, execType=0x00, zero selectors/payload.
 export const ERC7821_BATCH_MODE =
   '0x0100000000000000000000000000000000000000000000000000000000000000' as const;
+
+// EntryPoint v0.8 computes userOpHash as an EIP-712 digest with this domain/type, which
+// lets EOAs (EIP-7702 accounts) sign UserOps via eth_signTypedData_v4 in a browser wallet.
+export function entryPointDomain(entryPoint: string, chainId: bigint | number) {
+  return {name: 'ERC4337', version: '1', chainId, verifyingContract: entryPoint} as const;
+}
+
+export const PACKED_USER_OP_TYPED_DATA_TYPES: Record<string, {name: string; type: string}[]> = {
+  PackedUserOperation: [
+    {name: 'sender', type: 'address'},
+    {name: 'nonce', type: 'uint256'},
+    {name: 'initCode', type: 'bytes'},
+    {name: 'callData', type: 'bytes'},
+    {name: 'accountGasLimits', type: 'bytes32'},
+    {name: 'preVerificationGas', type: 'uint256'},
+    {name: 'gasFees', type: 'bytes32'},
+    {name: 'paymasterAndData', type: 'bytes'},
+  ],
+};
+
+export function userOpToTypedDataMessage(op: PackedUserOp) {
+  return {
+    sender: op[0],
+    nonce: op[1],
+    initCode: op[2],
+    callData: op[3],
+    accountGasLimits: op[4],
+    preVerificationGas: op[5],
+    gasFees: op[6],
+    paymasterAndData: op[7],
+  };
+}
 
 // A PackedUserOperation as a positional array (what the tuple ABI consumes).
 export type PackedUserOp = [
@@ -47,6 +109,42 @@ export type PackedUserOp = [
 ];
 
 export type GasToken = 'a7a5' | 'usdt';
+
+/** Creation-time ERC-20 allowance granted by a smart account ({IApprovalAccount.TokenApproval}). */
+export interface TokenApproval {
+  token: string;
+  spender: string;
+  amount: bigint;
+}
+
+const MAX_UINT256 = (1n << 256n) - 1n;
+
+export interface DefaultApprovalAddresses {
+  a7a5: string;
+  wa7a5: string;
+  usdt: string;
+  poolsFacade: string;
+  paraSwap: string;
+  a7a5Paymaster: string;
+  usdtPaymaster: string;
+}
+
+/**
+ * Default creation-time approval set: A7A5 / WA7A5 / USDT → PoolsFacade and ParaSwap,
+ * plus each paymaster's gas token → paymaster. Amounts default to max uint256.
+ */
+export function defaultApprovals(addrs: DefaultApprovalAddresses, amount = MAX_UINT256): TokenApproval[] {
+  return [
+    {token: addrs.a7a5, spender: addrs.poolsFacade, amount},
+    {token: addrs.wa7a5, spender: addrs.poolsFacade, amount},
+    {token: addrs.usdt, spender: addrs.poolsFacade, amount},
+    {token: addrs.a7a5, spender: addrs.paraSwap, amount},
+    {token: addrs.wa7a5, spender: addrs.paraSwap, amount},
+    {token: addrs.usdt, spender: addrs.paraSwap, amount},
+    {token: addrs.a7a5, spender: addrs.a7a5Paymaster, amount},
+    {token: addrs.usdt, spender: addrs.usdtPaymaster, amount},
+  ];
+}
 
 export interface PaymasterAddresses {
   a7a5?: string;
@@ -118,6 +216,21 @@ export function buildInitCode(
   return ethers.solidityPacked(['address', 'bytes'], [factoryAddress, factoryData]);
 }
 
+/** Build ERC-4337 initCode: factory (20 bytes) + cloneAndInitializeWithApprovals(calldata, approvals). */
+export function buildInitCodeWithApprovals(
+  ethers: MinimalEthers,
+  factoryAddress: string,
+  initializeCalldata: string,
+  approvals: TokenApproval[],
+): string {
+  const iface = new ethers.Interface(ACCOUNT_FACTORY_ABI);
+  const factoryData = iface.encodeFunctionData('cloneAndInitializeWithApprovals', [
+    initializeCalldata,
+    approvals.map((a) => [a.token, a.spender, a.amount]),
+  ]);
+  return ethers.solidityPacked(['address', 'bytes'], [factoryAddress, factoryData]);
+}
+
 /** Encode initializeWebAuthn(qx, qy) calldata for factory / counterfactual deploy. */
 export function encodeInitializeWebAuthn(ethers: MinimalEthers, qx: string, qy: string): string {
   const iface = new ethers.Interface(WEBAUTHN_ACCOUNT_ABI);
@@ -131,12 +244,33 @@ export function buildErc7821ExecuteCalldata(
   value: bigint,
   innerCalldata: string,
 ): string {
+  return buildErc7821BatchCalldata(ethers, [{target, value, callData: innerCalldata}]);
+}
+
+/** Build ERC-7821 execute(mode, batch) callData for multiple calls. */
+export function buildErc7821BatchCalldata(
+  ethers: MinimalEthers,
+  calls: {target: string; value: bigint; callData: string}[],
+): string {
   const executionData = ethers.AbiCoder.defaultAbiCoder().encode(
     ['tuple(address target, uint256 value, bytes callData)[]'],
-    [[[target, value, innerCalldata]]],
+    [calls.map((c) => [c.target, c.value, c.callData])],
   );
   const iface = new ethers.Interface(WEBAUTHN_ACCOUNT_ABI);
   return iface.encodeFunctionData('execute', [ERC7821_BATCH_MODE, executionData]);
+}
+
+/** ERC-20 approve calls for an ERC-7821 batch. */
+export function approvalBatchCalls(
+  ethers: MinimalEthers,
+  approvals: TokenApproval[],
+): {target: string; value: bigint; callData: string}[] {
+  const iface = new ethers.Interface(['function approve(address spender, uint256 amount) returns (bool)']);
+  return approvals.map((a) => ({
+    target: a.token,
+    value: 0n,
+    callData: iface.encodeFunctionData('approve', [a.spender, a.amount]),
+  }));
 }
 
 /** Build an unsigned PackedUserOperation (signature slot empty). */
@@ -190,6 +324,32 @@ export async function buildSignedUserOp(
   const userOpHash = await entryPoint.getUserOpHash(op);
   op[8] = await owner.signMessage(ethers.getBytes(userOpHash));
   return op;
+}
+
+/** Build ERC-4337 initCode: factoryV2 (20 bytes) + deployAccount(owner_). */
+export function buildInitCodeECDSA(
+  ethers: MinimalEthers,
+  factoryV2Address: string,
+  ownerAddress: string,
+): string {
+  const iface = new ethers.Interface(ECDSA_ACCOUNT_FACTORY_V2_ABI);
+  const factoryData = iface.encodeFunctionData('deployAccount', [ownerAddress]);
+  return ethers.solidityPacked(['address', 'bytes'], [factoryV2Address, factoryData]);
+}
+
+/** Build ERC-4337 initCode: factoryV2 + deployAccountWithApprovals(owner_, approvals). */
+export function buildInitCodeECDSAWithApprovals(
+  ethers: MinimalEthers,
+  factoryV2Address: string,
+  ownerAddress: string,
+  approvals: TokenApproval[],
+): string {
+  const iface = new ethers.Interface(ECDSA_ACCOUNT_FACTORY_V2_ABI);
+  const factoryData = iface.encodeFunctionData('deployAccountWithApprovals', [
+    ownerAddress,
+    approvals.map((a) => [a.token, a.spender, a.amount]),
+  ]);
+  return ethers.solidityPacked(['address', 'bytes'], [factoryV2Address, factoryData]);
 }
 
 /**

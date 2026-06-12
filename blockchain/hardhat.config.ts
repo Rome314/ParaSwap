@@ -41,6 +41,26 @@ const config: HardhatUserConfig = {
           }
         : {}),
     },
+    localhost: {
+      type: 'http',
+      chainType: 'l1',
+      url: 'http://127.0.0.1:8545',
+      chainId: 1,
+      // 'remote' skips Hardhat's LocalAccountsHandler so eth_sendTransaction is forwarded
+      // directly to the node. This is required for whale impersonation on Ganache: the node
+      // has the whale addresses pre-unlocked and must sign on their behalf, but LocalAccountsHandler
+      // would intercept and throw HHE716 ("account not managed") before the request reaches Ganache.
+      // Both Ganache and Hardhat node handle eth_sendTransaction natively for their own accounts.
+      accounts: 'remote',
+    },
+    // Truffle Dashboard signs transactions via MetaMask — no private key needed.
+    // Run `npm run dashboard:open`, then use --network truffle-dashboard for Ignition deploys.
+    // Do NOT use this network for fork-setup-and-demo.ts (requires evm_* methods unavailable via Dashboard).
+    'truffle-dashboard': {
+      type: 'http',
+      chainType: 'l1',
+      url: 'http://localhost:24012/rpc',
+    },
     mainnet: {
       type: 'http',
       chainType: 'l1',

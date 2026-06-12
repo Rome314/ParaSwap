@@ -4,9 +4,9 @@
 //
 //   npm run bundler:dev
 import http from 'node:http';
-import { network } from 'hardhat';
-import { ADDRESSES } from '../common/addresses.js';
-import { ENTRYPOINT_ABI } from '../common/erc4337.js';
+import {network} from 'hardhat';
+import {ADDRESSES} from '../common/addresses.js';
+import {ENTRYPOINT_ABI} from '../common/erc4337.js';
 
 const PORT = Number(process.env.BUNDLER_PORT ?? 4337);
 const ENTRY_POINT = process.env.ENTRYPOINT ?? ADDRESSES.ENTRYPOINT_V08;
@@ -23,17 +23,7 @@ type RpcUserOp = {
   signature: string;
 };
 
-type PackedUserOp = [
-  string,
-  bigint,
-  string,
-  string,
-  string,
-  bigint,
-  string,
-  string,
-  string,
-];
+type PackedUserOp = [string, bigint, string, string, string, bigint, string, string, string];
 
 const receipts = new Map<string, Record<string, unknown>>();
 
@@ -51,39 +41,51 @@ function rpcToPacked(op: RpcUserOp): PackedUserOp {
   ];
 }
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 function json(res: http.ServerResponse, status: number, body: unknown) {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.writeHead(status, {'Content-Type': 'application/json', ...CORS_HEADERS});
   res.end(JSON.stringify(body));
 }
 
 async function main() {
-  const conn = await network.connect({ network: 'localhost', chainType: 'l1' });
-  const { ethers } = conn;
+  const conn = await network.connect({network: 'localhost', chainType: 'l1'});
+  const {ethers} = conn;
   const [bundlerSigner] = await ethers.getSigners();
   const beneficiary = await bundlerSigner.getAddress();
   const entryPoint = new ethers.Contract(ENTRY_POINT, ENTRYPOINT_ABI, bundlerSigner);
 
   const server = http.createServer(async (req, res) => {
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, CORS_HEADERS);
+      res.end();
+      return;
+    }
+
     if (req.method !== 'POST') {
-      json(res, 405, { error: 'Method not allowed' });
+      json(res, 405, {error: 'Method not allowed'});
       return;
     }
 
     let body = '';
     for await (const chunk of req) body += chunk;
-    let payload: { id?: number; method?: string; params?: unknown[] };
+    let payload: {id?: number; method?: string; params?: unknown[]};
     try {
       payload = JSON.parse(body);
     } catch {
-      json(res, 400, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
+      json(res, 400, {jsonrpc: '2.0', id: null, error: {code: -32700, message: 'Parse error'}});
       return;
     }
 
-    const { id = 1, method, params = [] } = payload;
+    const {id = 1, method, params = []} = payload;
 
     try {
       if (method === 'eth_supportedEntryPoints') {
-        json(res, 200, { jsonrpc: '2.0', id, result: [ENTRY_POINT] });
+        json(res, 200, {jsonrpc: '2.0', id, result: [ENTRY_POINT]});
         return;
       }
 
@@ -97,7 +99,7 @@ async function main() {
           json(res, 200, {
             jsonrpc: '2.0',
             id,
-            error: { code: -32603, message: `Simulation failed: ${msg}` },
+            error: {code: -32603, message: `Simulation failed: ${msg}`},
           });
           return;
         }
@@ -141,24 +143,24 @@ async function main() {
             : undefined,
         };
         receipts.set(userOpHash, stored);
-        json(res, 200, { jsonrpc: '2.0', id, result: userOpHash });
+        json(res, 200, {jsonrpc: '2.0', id, result: userOpHash});
         return;
       }
 
       if (method === 'eth_getUserOperationReceipt') {
         const [hash] = params as [string];
-        json(res, 200, { jsonrpc: '2.0', id, result: receipts.get(hash) ?? null });
+        json(res, 200, {jsonrpc: '2.0', id, result: receipts.get(hash) ?? null});
         return;
       }
 
       json(res, 200, {
         jsonrpc: '2.0',
         id,
-        error: { code: -32601, message: `Method not found: ${method}` },
+        error: {code: -32601, message: `Method not found: ${method}`},
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      json(res, 200, { jsonrpc: '2.0', id, error: { code: -32603, message: msg } });
+      json(res, 200, {jsonrpc: '2.0', id, error: {code: -32603, message: msg}});
     }
   });
 

@@ -1,5 +1,5 @@
 import {ADDRESSES} from '../../common/addresses.js';
-import {ENTRYPOINT_ABI, encodeInitializeWebAuthn} from '../../common/erc4337.js';
+import {ENTRYPOINT_ABI, defaultApprovals, encodeInitializeWebAuthn} from '../../common/erc4337.js';
 import {fundFromWhale} from '../helpers.js';
 import {approveFromAccount} from '../Paymaster/fixtures.js';
 import {conn, ethers, SIDE, TWAP_WINDOW, MAX_STALENESS, A7A5_GAS_FUNDING, USDT_POKE, V3_POOL_ABI, FAR_DEADLINE} from '../Paymaster/consts.js';
@@ -94,23 +94,41 @@ export async function deployAAStackFixture() {
   await accountImpl.waitForDeployment();
   const accountImplAddr = await accountImpl.getAddress();
 
-  const factory = await ethers.deployContract('A7A5AccountFactory', [accountImplAddr]);
+  const eip7702Delegate = await ethers.deployContract('A7A5EIP7702Account', [ADDRESSES.ENTRYPOINT_V08]);
+  await eip7702Delegate.waitForDeployment();
+  const eip7702DelegateAddr = await eip7702Delegate.getAddress();
+
+  const factory = await ethers.deployContract('A7A5AccountFactory', [
+    accountImplAddr,
+    eip7702DelegateAddr,
+    [facadeAddr, paraSwapAddr, a7a5PaymasterAddr, usdtPaymasterAddr],
+  ]);
   await factory.waitForDeployment();
   const factoryAddr = await factory.getAddress();
+
+  const accountApprovals = defaultApprovals({
+    a7a5: ADDRESSES.A7A5,
+    wa7a5: ADDRESSES.WA7A5,
+    usdt: ADDRESSES.USDT,
+    poolsFacade: facadeAddr,
+    paraSwap: paraSwapAddr,
+    a7a5Paymaster: a7a5PaymasterAddr,
+    usdtPaymaster: usdtPaymasterAddr,
+  });
 
   const {qx, qy} = testP256PublicKey();
   const initCalldata = encodeInitializeWebAuthn(ethers as any, qx, qy);
   const accountAddr: string = await (factory as any).predictAddress(initCalldata);
-  await (await (factory as any).cloneAndInitialize(initCalldata)).wait();
+  await (
+    await (factory as any).cloneAndInitializeWithApprovals(
+      initCalldata,
+      accountApprovals.map((a) => [a.token, a.spender, a.amount]),
+    )
+  ).wait();
   const account = await ethers.getContractAt('A7A5WebAuthnAccount', accountAddr);
 
   await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, accountAddr, A7A5_GAS_FUNDING);
   await fundFromWhale(conn, ADDRESSES.USDT, ADDRESSES.USDT_WHALE, accountAddr, USDT_GAS_FUNDING);
-
-  await approveErc7821(account, ADDRESSES.A7A5, paraSwapAddr);
-  await approveErc7821(account, ADDRESSES.A7A5, a7a5PaymasterAddr);
-  await approveErc7821(account, ADDRESSES.USDT, usdtPaymasterAddr);
-  await approveErc7821(account, ADDRESSES.USDT, paraSwapAddr);
 
   return {
     deployer,
@@ -135,10 +153,13 @@ export async function deployAAStackFixture() {
     usdtPaymasterAddr,
     accountImpl,
     accountImplAddr,
+    eip7702Delegate,
+    eip7702DelegateAddr,
     factory,
     factoryAddr,
     account,
     accountAddr,
+    accountApprovals,
     initCalldata,
     qx,
     qy,

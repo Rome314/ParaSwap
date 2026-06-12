@@ -18,7 +18,10 @@ describe('A7A5WebAuthnAccount (unit)', function () {
     await impl.waitForDeployment();
     const implAddr = await impl.getAddress();
 
-    const factory = await ethers.deployContract('A7A5AccountFactory', [implAddr]);
+    const delegate = await ethers.deployContract('A7A5EIP7702Account', [mockEPAddr]);
+    await delegate.waitForDeployment();
+
+    const factory = await ethers.deployContract('A7A5AccountFactory', [implAddr, await delegate.getAddress(), []]);
     await factory.waitForDeployment();
 
     const {qx, qy} = testP256PublicKey();

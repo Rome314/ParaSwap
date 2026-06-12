@@ -7,10 +7,13 @@ import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {ERC7739} from "@openzeppelin/contracts/utils/cryptography/signers/draft-ERC7739.sol";
 import {ERC7821} from "@openzeppelin/contracts/account/extensions/draft-ERC7821.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SignerWebAuthn} from "@openzeppelin/contracts/utils/cryptography/signers/SignerWebAuthn.sol";
 import {SignerP256} from "@openzeppelin/contracts/utils/cryptography/signers/SignerP256.sol";
 import {IEntryPoint} from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
+import {IApprovalAccount, TokenApproval} from "./IApprovalAccount.sol";
 
 /**
  * @title A7A5WebAuthnAccount
@@ -27,8 +30,11 @@ contract A7A5WebAuthnAccount is
     ERC7821,
     SignerWebAuthn,
     ERC721Holder,
-    ERC1155Holder
+    ERC1155Holder,
+    IApprovalAccount
 {
+    using SafeERC20 for IERC20;
+
     IEntryPoint private immutable _ENTRY_POINT;
 
     error A7A5WebAuthnAccount__ZeroAddress();
@@ -46,6 +52,17 @@ contract A7A5WebAuthnAccount is
 
     function initializeWebAuthn(bytes32 qx, bytes32 qy) public initializer {
         _setSigner(qx, qy);
+    }
+
+    /**
+     * @notice Grants creation-time ERC-20 allowances. Consumes reinitializer version 2, so it can
+     * run exactly once, immediately after {initializeWebAuthn} — {A7A5AccountFactory} always calls
+     * it (even with an empty list) so the slot is never left open for a third party.
+     */
+    function initializeApprovals(TokenApproval[] calldata approvals) external reinitializer(2) {
+        for (uint256 i; i < approvals.length; ++i) {
+            IERC20(approvals[i].token).forceApprove(approvals[i].spender, approvals[i].amount);
+        }
     }
 
     /// @inheritdoc Account
