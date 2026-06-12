@@ -15,23 +15,11 @@ const conn = await network.create('hardhat');
 const {ethers} = conn;
 
 export async function deployOracleStack(owner: string) {
-  const twap = await ethers.deployContract('A7A5UsdtTwapOracle', [
-    ADDRESSES.V3_POOL_USDT_WA7A5,
-    ADDRESSES.WA7A5,
-    ADDRESSES.USDT,
-    TWAP_WINDOW,
-    owner,
-  ]);
+  const twap = await ethers.deployContract('A7A5UsdtTwapOracle', [ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.WA7A5, ADDRESSES.USDT, TWAP_WINDOW, owner]);
   await twap.waitForDeployment();
   const twapAddr = await twap.getAddress();
 
-  const oracle = await ethers.deployContract('A7A5NativeOracle', [
-    twapAddr,
-    ADDRESSES.CHAINLINK_USDT_ETH,
-    ADDRESSES.WA7A5,
-    MAX_STALENESS,
-    owner,
-  ]);
+  const oracle = await ethers.deployContract('A7A5NativeOracle', [twapAddr, ADDRESSES.CHAINLINK_USDT_ETH, ADDRESSES.WA7A5, MAX_STALENESS, owner]);
   await oracle.waitForDeployment();
   const oracleAddr = await oracle.getAddress();
 

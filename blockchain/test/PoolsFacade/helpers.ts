@@ -8,11 +8,6 @@ import {ADDRESSES} from '../../common/addresses.js';
 import {SnapshotRestorer} from '@nomicfoundation/hardhat-network-helpers/types';
 import {V2Pair__factory} from '../../types/ethers-contracts/factories/interfaces/Uniswap.sol/V2Pair__factory.js';
 
-export function formatUnits6(input: BigNumberish): string {
-  return ethers.formatUnits(input, 6);
-}
-export const abs = (a: bigint, b: bigint) => (a > b ? a - b : b - a);
-
 export function tokens() {
   return {
     // TODO: use IERC20 for USDT

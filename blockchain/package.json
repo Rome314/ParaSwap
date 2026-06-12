@@ -4,13 +4,15 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "hardhat build",
+    "build": "hardhat build && tsx scripts/export-artifacts.ts",
+    "export-artifacts": "tsx scripts/export-artifacts.ts",
     "test": "hardhat test mocha",
     "test:fork": "MAINNET_FORK=1 hardhat test mocha",
     "format": "prettier --write \"**/*.{sol,ts,js}\"",
     "format:check": "prettier --check \"**/*.{sol,ts,js}\""
   },
   "dependencies": {
+    "@para-swap/contracts": "*",
     "@openzeppelin/community-contracts": "github:OpenZeppelin/openzeppelin-community-contracts",
     "@openzeppelin/contracts": "^5.6.1",
     "@uniswap/v2-core": "^1.0.1",
@@ -40,6 +42,7 @@
     "mocha": "^11.0.0",
     "prettier": "^3.8.3",
     "prettier-plugin-solidity": "^2.3.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.2"
   }
 }

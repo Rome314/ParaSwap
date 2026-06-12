@@ -1,0 +1,75 @@
+type Token @entity {
+  id: ID!
+  symbol: String!
+  address: Bytes!
+  decimals: Int
+  paused: Boolean
+  basisPointsRate: BigInt
+  totalSupply: BigInt
+  totalLiquidity: BigInt
+}
+
+type A7A5Event @entity {
+  id: ID!
+  token: Token!
+  eventType: String!
+  user: Bytes
+  amount: BigInt
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Transfer @entity {
+  id: ID!
+  token: Token!
+  from: Bytes!
+  to: Bytes!
+  value: BigInt!
+  isWrap: Boolean!
+  isUnwrap: Boolean!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ParaSwapSwap @entity {
+  id: ID!
+  tokenIn: Bytes!
+  tokenOut: Bytes!
+  amountIn: BigInt!
+  amountOut: BigInt!
+  recipient: Bytes!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PoolsFacadeSwap @entity {
+  id: ID!
+  path: String!
+  user: Bytes!
+  side: Int!
+  strategy: Int
+  amountIn: BigInt!
+  amountOut: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DailyVolume @entity {
+  id: ID!
+  token: Token!
+  date: String!
+  volumeIn: BigInt!
+  volumeOut: BigInt!
+  swapCount: BigInt!
+}
+
+type UserSwapStats @entity {
+  id: ID!
+  user: Bytes!
+  swapCount: BigInt!
+  lastSwapTimestamp: BigInt!
+}

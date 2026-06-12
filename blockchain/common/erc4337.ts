@@ -95,17 +95,7 @@ export async function buildSignedUserOp(
     ? ethers.solidityPacked(['address', 'uint128', 'uint128', 'bytes'], [params.paymaster, pmVerif, pmPostOp, '0x'])
     : '0x';
 
-  const op: PackedUserOp = [
-    params.sender,
-    nonce,
-    '0x',
-    params.callData,
-    accountGasLimits,
-    preVerificationGas,
-    gasFees,
-    paymasterAndData,
-    '0x',
-  ];
+  const op: PackedUserOp = [params.sender, nonce, '0x', params.callData, accountGasLimits, preVerificationGas, gasFees, paymasterAndData, '0x'];
 
   const userOpHash = await entryPoint.getUserOpHash(op);
   op[8] = await owner.signMessage(ethers.getBytes(userOpHash));

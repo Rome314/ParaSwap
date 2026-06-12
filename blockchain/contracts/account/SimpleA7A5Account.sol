@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {IAccount, IEntryPoint, PackedUserOperation} from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
+import {
+    IAccount,
+    IEntryPoint,
+    PackedUserOperation
+} from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
 import {ERC4337Utils} from "@openzeppelin/contracts/account/utils/draft-ERC4337Utils.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
@@ -27,7 +31,8 @@ contract SimpleA7A5Account is IAccount {
     event Executed(address indexed target, uint256 value, bytes data);
 
     constructor(IEntryPoint entryPoint_, address owner_) {
-        if (address(entryPoint_) == address(0) || owner_ == address(0)) revert SimpleA7A5Account__ZeroAddress();
+        if (address(entryPoint_) == address(0) || owner_ == address(0))
+            revert SimpleA7A5Account__ZeroAddress();
         ENTRY_POINT = entryPoint_;
         owner = owner_;
     }
@@ -38,12 +43,18 @@ contract SimpleA7A5Account is IAccount {
         bytes32 userOpHash,
         uint256 missingAccountFunds
     ) external returns (uint256 validationData) {
-        if (msg.sender != address(ENTRY_POINT)) revert SimpleA7A5Account__NotEntryPoint();
+        if (msg.sender != address(ENTRY_POINT))
+            revert SimpleA7A5Account__NotEntryPoint();
 
         // eth_sign / personal_sign prefix, inlined to avoid the ^0.8.24 MessageHashUtils dependency.
-        bytes32 ethHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", userOpHash));
+        bytes32 ethHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", userOpHash)
+        );
         address recovered = ECDSA.recover(ethHash, userOp.signature);
-        validationData = recovered == owner ? ERC4337Utils.SIG_VALIDATION_SUCCESS : ERC4337Utils.SIG_VALIDATION_FAILED;
+        validationData =
+            recovered == owner
+                ? ERC4337Utils.SIG_VALIDATION_SUCCESS
+                : ERC4337Utils.SIG_VALIDATION_FAILED;
 
         if (missingAccountFunds != 0) {
             // Best-effort top-up of the EntryPoint; failures are surfaced by the EntryPoint itself.
@@ -53,8 +64,13 @@ contract SimpleA7A5Account is IAccount {
     }
 
     /// @notice Execute a single call. Callable by the EntryPoint (sponsored) or directly by the owner.
-    function execute(address target, uint256 value, bytes calldata data) external returns (bytes memory) {
-        if (msg.sender != address(ENTRY_POINT) && msg.sender != owner) revert SimpleA7A5Account__NotOwnerOrEntryPoint();
+    function execute(
+        address target,
+        uint256 value,
+        bytes calldata data
+    ) external returns (bytes memory) {
+        if (msg.sender != address(ENTRY_POINT) && msg.sender != owner)
+            revert SimpleA7A5Account__NotOwnerOrEntryPoint();
         (bool ok, bytes memory ret) = target.call{value: value}(data);
         if (!ok) {
             assembly {

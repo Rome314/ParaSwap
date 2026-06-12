@@ -1,5 +1,11 @@
 import {network} from 'hardhat';
 import {ERC20_TRANSFER_ABI} from '../common/abi.js';
+import {BigNumberish, ethers} from 'ethers';
+
+export function formatUnits6(input: BigNumberish): string {
+  return ethers.formatUnits(input, 6);
+}
+export const abs = (a: bigint, b: bigint) => (a > b ? a - b : b - a);
 
 // The object returned by `network.create()` (ethers + networkHelpers, etc.).
 export type Conn = Awaited<ReturnType<typeof network.create>>;

@@ -160,8 +160,7 @@ describe('quote', function () {
     const {facade} = await loadFixture(deployFacadeFixture);
     const hugeReserve = 10n ** 24n;
     const snap = await setV2Reserve(ADDRESSES.V2_PAIR_USDT_A7A5, hugeReserve, null);
-    const [amountOut, strategyRaw]: [bigint, bigint] =
-      await facade.getBestQuoteA7A5PerUSDT.staticCall(USDT_IN, SIDE.BUY);
+    const [amountOut, strategyRaw]: [bigint, bigint] = await facade.getBestQuoteA7A5PerUSDT.staticCall(USDT_IN, SIDE.BUY);
     console.log(`        inflated V2 A7A5 reserve  ${hugeReserve}`);
     console.log(`        strategy   ${strategyRaw === 0n ? 'DIRECT' : 'MIXED'}`);
     console.log(`        amountOut  ${ethers.formatUnits(amountOut, 6)} A7A5`);

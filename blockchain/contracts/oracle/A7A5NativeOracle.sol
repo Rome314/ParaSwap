@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {
+    Ownable2Step,
+    Ownable
+} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
@@ -62,7 +65,11 @@ contract A7A5NativeOracle is Ownable2Step {
         uint256 maxStaleness_,
         address owner_
     ) Ownable(owner_) {
-        if (maxStaleness_ < MIN_MAX_STALENESS) revert A7A5NativeOracle__StalenessTooLow(maxStaleness_, MIN_MAX_STALENESS);
+        if (maxStaleness_ < MIN_MAX_STALENESS)
+            revert A7A5NativeOracle__StalenessTooLow(
+                maxStaleness_,
+                MIN_MAX_STALENESS
+            );
 
         A7A5_USDT = a7a5Usdt;
         USDT_ETH = usdtEth;
@@ -73,14 +80,19 @@ contract A7A5NativeOracle is Ownable2Step {
 
         A7A5_USDT_DECIMALS = twapDec;
         USDT_ETH_DECIMALS = feedDec;
-        NUMERATOR = 10 ** (uint256(a7a5Dec) + uint256(feedDec) + uint256(twapDec));
+        NUMERATOR =
+            10 ** (uint256(a7a5Dec) + uint256(feedDec) + uint256(twapDec));
         maxStaleness = maxStaleness_;
     }
 
     // ── Admin ───────────────────────────────────────────────────────────────────
 
     function setMaxStaleness(uint256 newMaxStaleness) external onlyOwner {
-        if (newMaxStaleness < MIN_MAX_STALENESS) revert A7A5NativeOracle__StalenessTooLow(newMaxStaleness, MIN_MAX_STALENESS);
+        if (newMaxStaleness < MIN_MAX_STALENESS)
+            revert A7A5NativeOracle__StalenessTooLow(
+                newMaxStaleness,
+                MIN_MAX_STALENESS
+            );
         uint256 old = maxStaleness;
         maxStaleness = newMaxStaleness;
         emit MaxStalenessUpdated(old, newMaxStaleness);
@@ -93,8 +105,13 @@ contract A7A5NativeOracle is Ownable2Step {
      * @dev Does NOT revert on staleness (only on clearly invalid data) so it is safe to call inside
      *      ERC-4337 paymaster validation; the caller should reject the op if `validUntil` has passed.
      */
-    function tokenPriceData() public view returns (uint256 price, uint48 validUntil) {
-        (, int256 ethPerUsdt, , uint256 updatedAt, ) = USDT_ETH.latestRoundData();
+    function tokenPriceData()
+        public
+        view
+        returns (uint256 price, uint48 validUntil)
+    {
+        (, int256 ethPerUsdt, , uint256 updatedAt, ) = USDT_ETH
+            .latestRoundData();
         if (ethPerUsdt <= 0) revert A7A5NativeOracle__InvalidPrice();
 
         (, int256 usdtPerA7A5, , , ) = A7A5_USDT.latestRoundData();
@@ -111,6 +128,7 @@ contract A7A5NativeOracle is Ownable2Step {
     function tokenPrice() external view returns (uint256 price) {
         uint48 validUntil;
         (price, validUntil) = tokenPriceData();
-        if (block.timestamp > validUntil) revert A7A5NativeOracle__StalePrice(validUntil, block.timestamp);
+        if (block.timestamp > validUntil)
+            revert A7A5NativeOracle__StalePrice(validUntil, block.timestamp);
     }
 }

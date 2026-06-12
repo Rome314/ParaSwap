@@ -46,8 +46,13 @@ async function main() {
 
   // ── Deploy swap + oracle + paymaster + account ──────────────────────────────
   const facade = await ethers.deployContract('PoolsFacade', [
-    ADDRESSES.WA7A5, ADDRESSES.A7A5, ADDRESSES.USDT,
-    ADDRESSES.V2_PAIR_USDT_A7A5, ADDRESSES.SWAP_ROUTER_02, ADDRESSES.QUOTER_V2, ADDRESSES.V3_FEE_TIER,
+    ADDRESSES.WA7A5,
+    ADDRESSES.A7A5,
+    ADDRESSES.USDT,
+    ADDRESSES.V2_PAIR_USDT_A7A5,
+    ADDRESSES.SWAP_ROUTER_02,
+    ADDRESSES.QUOTER_V2,
+    ADDRESSES.V3_FEE_TIER,
   ]);
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();
@@ -56,12 +61,14 @@ async function main() {
   await paraSwap.waitForDeployment();
   const paraSwapAddr = await paraSwap.getAddress();
 
-  const twap = await ethers.deployContract('A7A5UsdtTwapOracle', [
-    ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.WA7A5, ADDRESSES.USDT, TWAP_WINDOW, owner,
-  ]);
+  const twap = await ethers.deployContract('A7A5UsdtTwapOracle', [ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.WA7A5, ADDRESSES.USDT, TWAP_WINDOW, owner]);
   await twap.waitForDeployment();
   const oracle = await ethers.deployContract('A7A5NativeOracle', [
-    await twap.getAddress(), ADDRESSES.CHAINLINK_USDT_ETH, ADDRESSES.WA7A5, MAX_STALENESS, owner,
+    await twap.getAddress(),
+    ADDRESSES.CHAINLINK_USDT_ETH,
+    ADDRESSES.WA7A5,
+    MAX_STALENESS,
+    owner,
   ]);
   await oracle.waitForDeployment();
   const oracleAddr = await oracle.getAddress();
@@ -106,7 +113,12 @@ async function main() {
   const accEthBefore: bigint = await ethers.provider.getBalance(accountAddr);
 
   const swapData = new ethers.Interface(PARASWAP_ABI).encodeFunctionData('swap', [
-    ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_SWAP_IN, 0n, ADDRESSES.V3_FEE_TIER, FAR_DEADLINE,
+    ADDRESSES.A7A5,
+    ADDRESSES.USDT,
+    A7A5_SWAP_IN,
+    0n,
+    ADDRESSES.V3_FEE_TIER,
+    FAR_DEADLINE,
   ]);
   const callData = new ethers.Interface(ACCOUNT_ABI).encodeFunctionData('execute', [paraSwapAddr, 0, swapData]);
 
