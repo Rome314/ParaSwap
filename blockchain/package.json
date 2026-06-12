@@ -4,7 +4,8 @@
     "version": "0.0.1",
     "type": "module",
     "scripts": {
-        "build": "npx hardhat build",
+       "build": "npx hardhat build && tsx scripts/export-artifacts.ts",
+    "export-artifacts": "tsx scripts/export-artifacts.ts",
         "test": "npx hardhat test mocha",
         "test:fork": "MAINNET_FORK=1 npx hardhat test mocha",
         "test:coverage": "npx hardhat test mocha --coverage",

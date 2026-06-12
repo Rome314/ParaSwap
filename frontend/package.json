@@ -12,6 +12,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\""
   },
   "dependencies": {
+    "@para-swap/contracts": "*",
     "@openzeppelin/adapter-evm": "^2.1.0",
     "@openzeppelin/adapters-vite": "^3.0.0",
     "@openzeppelin/ui-components": "^2.0.0",

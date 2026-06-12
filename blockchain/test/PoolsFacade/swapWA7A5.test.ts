@@ -35,6 +35,12 @@ describe('swapWA7A5', function () {
       wa7a5Before = await wa7a5.balanceOf(traderAddr);
     });
 
+    it('emits WA7A5Swapped on BUY', async () => {
+      await expect(facade.connect(trader).swapWA7A5(USDT_IN, side, 0n, FAR_DEADLINE))
+        .to.emit(facade, 'WA7A5Swapped')
+        .withArgs(traderAddr, side, USDT_IN, (value: bigint) => value > 0n);
+    });
+
     it('swapWA7A5 BUY: trader receives wA7A5 and spends exactly USDT_IN', async () => {
       console.log('\n  ── swapWA7A5 BUY — basic ────────────────────────────');
 

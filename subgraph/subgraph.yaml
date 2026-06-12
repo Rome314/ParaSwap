@@ -1,0 +1,109 @@
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: A7A5
+    network: mainnet
+    source:
+      address: "0x6fA0BE17e4beA2fCfA22ef89BF8ac9aab0AB0fc9"
+      abi: A7A5
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Token
+        - A7A5Event
+      abis:
+        - name: A7A5
+          file: ./abis/A7A5.json
+      eventHandlers:
+        - event: Issue(indexed address,uint256)
+          handler: handleIssue
+        - event: Burn(indexed address,uint256)
+          handler: handleBurn
+        - event: Blacklisted(indexed address)
+          handler: handleBlacklisted
+        - event: DeBlacklisted(indexed address)
+          handler: handleDeBlacklisted
+        - event: DestroyedBlackFunds(indexed address,uint256)
+          handler: handleDestroyedBlackFunds
+        - event: TotalLiquidityUpdated(uint256,uint256)
+          handler: handleTotalLiquidityUpdated
+        - event: Paused()
+          handler: handlePaused
+        - event: Unpaused()
+          handler: handleUnpaused
+        - event: BasisPointsRateUpdated(uint256)
+          handler: handleBasisPointsRateUpdated
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleA7A5Transfer
+      file: ./src/a7a5.ts
+
+  - kind: ethereum
+    name: WA7A5
+    network: mainnet
+    source:
+      address: "0xF442fF10b8deF89514560A66C0AD28777094636a"
+      abi: WA7A5
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Token
+        - Transfer
+      abis:
+        - name: WA7A5
+          file: ./abis/WA7A5.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleWA7A5Transfer
+      file: ./src/wa7a5.ts
+
+  - kind: ethereum
+    name: ParaSwap
+    network: mainnet
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: ParaSwap
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ParaSwapSwap
+      abis:
+        - name: ParaSwap
+          file: ./abis/ParaSwap.json
+      eventHandlers:
+        - event: Swapped(indexed address,indexed address,uint256,uint256,indexed address)
+          handler: handleSwapped
+      file: ./src/paraswap.ts
+
+  - kind: ethereum
+    name: PoolsFacade
+    network: mainnet
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: PoolsFacade
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoolsFacadeSwap
+      abis:
+        - name: PoolsFacade
+          file: ./abis/PoolsFacade.json
+      eventHandlers:
+        - event: A7A5Swapped(indexed address,uint8,uint8,uint256,uint256)
+          handler: handleA7A5Swapped
+        - event: WA7A5Swapped(indexed address,uint8,uint256,uint256)
+          handler: handleWA7A5Swapped
+      file: ./src/pools-facade.ts

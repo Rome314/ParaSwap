@@ -33,6 +33,21 @@ enum STRATEGY {
     MIXED // (A7A5 <-> WA7A5) <-> USDT
 }
 
+event A7A5Swapped(
+    address indexed user,
+    SIDE side,
+    STRATEGY strategy,
+    uint256 amountIn,
+    uint256 amountOut
+);
+
+event WA7A5Swapped(
+    address indexed user,
+    SIDE side,
+    uint256 amountIn,
+    uint256 amountOut
+);
+
 contract PoolsFacade is ReentrancyGuard {
     // ── Immutables: tokens ─────────────────────────────────────────────────────
     IWA7A5 public immutable WA7A5;
@@ -127,6 +142,7 @@ contract PoolsFacade is ReentrancyGuard {
         }
 
         require(amountOut >= amountOutMin, "PoolsFacade: insufficient output");
+        emit A7A5Swapped(msg.sender, side, STRATEGY.DIRECT, amountIn, amountOut);
     }
 
     /// @notice Execute a wA7A5 ↔ USDT swap through the Uniswap V3 pool (wA7A5 path, SwapRouter02).
@@ -161,6 +177,7 @@ contract PoolsFacade is ReentrancyGuard {
             amountOutMin,
             msg.sender
         );
+        emit WA7A5Swapped(msg.sender, side, amountIn, amountOut);
     }
 
     /// @notice Execute A7A5 ↔ USDT at the best available price across the V2 direct
@@ -268,6 +285,7 @@ contract PoolsFacade is ReentrancyGuard {
         }
 
         require(amountOut >= amountOutMin, "PoolsFacade: insufficient output");
+        emit A7A5Swapped(msg.sender, side, strategy, amountIn, amountOut);
     }
 
     // ── Quotes ────────────────────────────────────────────────────────────────

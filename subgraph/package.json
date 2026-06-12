@@ -1,0 +1,19 @@
+{
+  "name": "para-swap-subgraph",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "sync-abis": "tsx scripts/sync-abis.ts",
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "create-local": "graph create --node http://localhost:8020/ para-swap/para-swap",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 para-swap/para-swap",
+    "deploy:studio": "graph deploy --studio para-swap"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.97.0",
+    "@graphprotocol/graph-ts": "^0.35.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.2"
+  }
+}

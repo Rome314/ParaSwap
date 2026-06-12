@@ -1,0 +1,26 @@
+{
+  "name": "para-swap",
+  "private": true,
+  "workspaces": [
+    "blockchain",
+    "frontend",
+    "packages/*",
+    "subgraph"
+  ],
+  "scripts": {
+    "build:contracts": "npm run build -w @para-swap/contracts && npm run build -w para-swap-contracts && npm run build -w @para-swap/contracts",
+    "build": "npm run build:contracts && npm run build -w para-swap-frontend",
+    "subgraph:sync-abis": "npm run sync-abis -w para-swap-subgraph",
+    "subgraph:codegen": "npm run sync-abis -w para-swap-subgraph && npm run codegen -w para-swap-subgraph",
+    "subgraph:build": "npm run subgraph:codegen && npm run build -w para-swap-subgraph",
+    "subgraph:deploy": "npm run deploy:studio -w para-swap-subgraph"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  },
+  "overrides": {
+    "ethereum-cryptography": {
+      "@noble/hashes": "1.4.0"
+    }
+  }
+}

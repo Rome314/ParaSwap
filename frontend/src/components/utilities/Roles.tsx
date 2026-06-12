@@ -10,7 +10,7 @@ import { SectionTitle } from '../ui/ui';
 type RolesQuery = ReturnType<typeof useRoles>;
 
 function ethExplorer(addr: string) {
-  return `https://sepolia.etherscan.io/address/${addr}`;
+  return `https://etherscan.io/address/${addr}`;
 }
 
 function RolesSection({ roles }: { roles: RolesQuery }) {

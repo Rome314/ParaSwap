@@ -1,0 +1,40 @@
+{
+  "mainnet": {
+    "network": "mainnet",
+    "A7A5": {
+      "address": "0x6fA0BE17e4beA2fCfA22ef89BF8ac9aab0AB0fc9",
+      "startBlock": 0
+    },
+    "WA7A5": {
+      "address": "0xF442fF10b8deF89514560A66C0AD28777094636a",
+      "startBlock": 0
+    },
+    "ParaSwap": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    },
+    "PoolsFacade": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    }
+  },
+  "sepolia": {
+    "network": "sepolia",
+    "A7A5": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    },
+    "WA7A5": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    },
+    "ParaSwap": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    },
+    "PoolsFacade": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    }
+  }
+}

@@ -45,6 +45,12 @@ describe('swapA7A5', function () {
       console.log(`    FOT rate: ${bps}/${precision}  (${(Number(bps) / Number(precision)) * 100}%)`);
     });
 
+    it('emits A7A5Swapped with DIRECT strategy', async () => {
+      await expect(facade.connect(trader).swapA7A5(USDT_IN, side, 0n, FAR_DEADLINE))
+        .to.emit(facade, 'A7A5Swapped')
+        .withArgs(traderAddr, side, 0, USDT_IN, (value: bigint) => value > 0n);
+    });
+
     it('trader receives A7A5 and spends exactly USDT_IN', async () => {
       console.log('\n  ── swapA7A5 BUY — basic ────────────────────────────');
 
