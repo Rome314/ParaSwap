@@ -26,9 +26,15 @@ contract A7A5AccountFactory {
     error A7A5AccountFactory__InvalidImplementation();
     error A7A5AccountFactory__SpenderNotAllowed(address spender);
 
-    constructor(address impl_, address eip7702Delegate_, address[] memory allowedSpenders_) {
-        if (impl_.code.length == 0) revert A7A5AccountFactory__InvalidImplementation();
-        if (eip7702Delegate_.code.length == 0) revert A7A5AccountFactory__InvalidImplementation();
+    constructor(
+        address impl_,
+        address eip7702Delegate_,
+        address[] memory allowedSpenders_
+    ) {
+        if (impl_.code.length == 0)
+            revert A7A5AccountFactory__InvalidImplementation();
+        if (eip7702Delegate_.code.length == 0)
+            revert A7A5AccountFactory__InvalidImplementation();
         _impl = impl_;
         _eip7702Delegate = eip7702Delegate_;
         for (uint256 i; i < allowedSpenders_.length; ++i) {
@@ -45,12 +51,21 @@ contract A7A5AccountFactory {
         return _eip7702Delegate;
     }
 
-    function predictAddress(bytes calldata callData) public view returns (address) {
-        return _impl.predictDeterministicAddress(keccak256(callData), address(this));
+    function predictAddress(
+        bytes calldata callData
+    ) public view returns (address) {
+        return
+            _impl.predictDeterministicAddress(
+                keccak256(callData),
+                address(this)
+            );
     }
 
-    function cloneAndInitialize(bytes calldata callData) public returns (address) {
-        return cloneAndInitializeWithApprovals(callData, new TokenApproval[](0));
+    function cloneAndInitialize(
+        bytes calldata callData
+    ) public returns (address) {
+        return
+            cloneAndInitializeWithApprovals(callData, new TokenApproval[](0));
     }
 
     /**
@@ -64,7 +79,9 @@ contract A7A5AccountFactory {
     ) public returns (address) {
         for (uint256 i; i < approvals.length; ++i) {
             if (!isAllowedSpender[approvals[i].spender]) {
-                revert A7A5AccountFactory__SpenderNotAllowed(approvals[i].spender);
+                revert A7A5AccountFactory__SpenderNotAllowed(
+                    approvals[i].spender
+                );
             }
         }
         address predicted = predictAddress(callData);

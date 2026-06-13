@@ -20,12 +20,21 @@ const PARASWAP_ABI = [
   'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, uint24 fee, uint256 deadline) returns (uint256)',
 ];
 
-function a7a5(p: any) { return IA7A5__factory.connect(ADDRESSES.A7A5, p); }
-function usdt(p: any) { return IA7A5__factory.connect(ADDRESSES.USDT, p); }
+function a7a5(p: any) {
+  return IA7A5__factory.connect(ADDRESSES.A7A5, p);
+}
+function usdt(p: any) {
+  return IA7A5__factory.connect(ADDRESSES.USDT, p);
+}
 
 function buildSwapCallData(paraSwapAddr: string, tokenIn: string, tokenOut: string, amountIn: bigint): string {
   const swapData = new ethers.Interface(PARASWAP_ABI).encodeFunctionData('swap', [
-    tokenIn, tokenOut, amountIn, 0n, ADDRESSES.V3_FEE_TIER, FAR_DEADLINE,
+    tokenIn,
+    tokenOut,
+    amountIn,
+    0n,
+    ADDRESSES.V3_FEE_TIER,
+    FAR_DEADLINE,
   ]);
   return buildErc7821ExecuteCalldata(ethers as any, paraSwapAddr, 0n, swapData);
 }
@@ -47,9 +56,13 @@ async function deployEcdsaStackFixture() {
 
   const ownerWallet = ethers.Wallet.createRandom().connect(ethers.provider);
   const approvals = defaultApprovals({
-    a7a5: ADDRESSES.A7A5, wa7a5: ADDRESSES.WA7A5, usdt: ADDRESSES.USDT,
-    poolsFacade: facadeAddr, paraSwap: paraSwapAddr,
-    a7a5Paymaster: a7a5PaymasterAddr, usdtPaymaster: usdtPaymasterAddr,
+    a7a5: ADDRESSES.A7A5,
+    wa7a5: ADDRESSES.WA7A5,
+    usdt: ADDRESSES.USDT,
+    poolsFacade: facadeAddr,
+    paraSwap: paraSwapAddr,
+    a7a5Paymaster: a7a5PaymasterAddr,
+    usdtPaymaster: usdtPaymasterAddr,
   });
 
   const ecdsaAccountAddr: string = await (ecdsaFactory as any).predictAddress(ownerWallet.address);
@@ -80,19 +93,14 @@ async function deployEcdsaStackFixture() {
     await conn.networkHelpers.setBalance(predicted, ethers.parseEther('0.2'));
     await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, predicted, 1_000_000_000n);
 
-    const op = await buildSignedUserOp(
-      ethers as any,
-      entryPoint as any,
-      freshOwner,
-      {
-        sender: predicted,
-        callData: '0x',
-        initCode,
-        nonce: 0n,
-        verificationGasLimit: 1_000_000n,
-        callGasLimit: 200_000n,
-      },
-    );
+    const op = await buildSignedUserOp(ethers as any, entryPoint as any, freshOwner, {
+      sender: predicted,
+      callData: '0x',
+      initCode,
+      nonce: 0n,
+      verificationGasLimit: 1_000_000n,
+      callGasLimit: 200_000n,
+    });
 
     await (entryPoint as any).connect(bundler).handleOps([op], await deployer.getAddress());
 

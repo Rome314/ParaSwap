@@ -27,10 +27,7 @@ describe('A7A5Account (unit)', function () {
 
     it('initialize reverts when called twice on a proxy', async function () {
       const {account, ownerWallet} = await loadFixture(deployAccountFixture);
-      await expect((account as any).initialize(ownerWallet.address)).to.be.revertedWithCustomError(
-        account,
-        'InvalidInitialization',
-      );
+      await expect((account as any).initialize(ownerWallet.address)).to.be.revertedWithCustomError(account, 'InvalidInitialization');
     });
 
     it('initializeApprovals sets ERC-20 allowances', async function () {
@@ -43,9 +40,7 @@ describe('A7A5Account (unit)', function () {
       // initializeApprovals slot is already consumed by factory — we need a fresh proxy to test it.
       // Test via a direct deployAccountWithApprovals scenario instead (factory-v2.test.ts covers that).
       // Here we just confirm the slot is sealed (reinitializer(2) consumed).
-      await expect(
-        (account as any).initializeApprovals([[tokenAddr, spender, 1n]]),
-      ).to.be.revertedWithCustomError(account, 'InvalidInitialization');
+      await expect((account as any).initializeApprovals([[tokenAddr, spender, 1n]])).to.be.revertedWithCustomError(account, 'InvalidInitialization');
     });
   });
 
@@ -65,9 +60,10 @@ describe('A7A5Account (unit)', function () {
         paymasterAndData: '0x',
         signature: '0x',
       };
-      await expect(
-        (account as any).connect(deployer).validateUserOp(op, ethers.ZeroHash, 0n),
-      ).to.be.revertedWithCustomError(account, 'AccountUnauthorized');
+      await expect((account as any).connect(deployer).validateUserOp(op, ethers.ZeroHash, 0n)).to.be.revertedWithCustomError(
+        account,
+        'AccountUnauthorized',
+      );
     });
 
     it('returns SIG_VALIDATION_SUCCESS (0) for a valid personal_sign signature', async function () {
@@ -156,9 +152,10 @@ describe('A7A5Account (unit)', function () {
         ['tuple(address target, uint256 value, bytes callData)[]'],
         [[[ethers.ZeroAddress, 0n, '0x']]],
       );
-      await expect(
-        (account as any).connect(stranger).execute(ERC7821_BATCH_MODE, executionData),
-      ).to.be.revertedWithCustomError(account, 'AccountUnauthorized');
+      await expect((account as any).connect(stranger).execute(ERC7821_BATCH_MODE, executionData)).to.be.revertedWithCustomError(
+        account,
+        'AccountUnauthorized',
+      );
     });
 
     it('inner call revert is bubbled up', async function () {
@@ -173,9 +170,7 @@ describe('A7A5Account (unit)', function () {
       );
       const ep = await ethers.getImpersonatedSigner(mockEPAddr);
       await deployer.sendTransaction({to: mockEPAddr, value: ethers.parseEther('0.1')});
-      await expect(
-        (account as any).connect(ep).execute(ERC7821_BATCH_MODE, executionData, {gasLimit: 300_000}),
-      ).to.be.revertedWith('target failed');
+      await expect((account as any).connect(ep).execute(ERC7821_BATCH_MODE, executionData, {gasLimit: 300_000})).to.be.revertedWith('target failed');
     });
   });
 
@@ -212,9 +207,10 @@ describe('A7A5Account (unit)', function () {
     it('setApproval reverts for non-owner', async function () {
       const {account, stranger} = await loadFixture(deployAccountFixture);
       const tokenAddr = ethers.Wallet.createRandom().address;
-      await expect(
-        (account as any).connect(stranger).setApproval(tokenAddr, ethers.ZeroAddress, 1n),
-      ).to.be.revertedWithCustomError(account, 'A7A5Account__NotOwner');
+      await expect((account as any).connect(stranger).setApproval(tokenAddr, ethers.ZeroAddress, 1n)).to.be.revertedWithCustomError(
+        account,
+        'A7A5Account__NotOwner',
+      );
     });
 
     it('setApprovals (batch) sets multiple allowances', async function () {
@@ -318,9 +314,7 @@ describe('A7A5Account (unit)', function () {
     it('withdrawal reverts for non-owner', async function () {
       const {account, stranger} = await loadFixture(deployAccountFixture);
       const tokenAddr = ethers.Wallet.createRandom().address;
-      await expect(
-        (account as any).connect(stranger).withdrawToken(tokenAddr, 1n),
-      ).to.be.revertedWithCustomError(account, 'A7A5Account__NotOwner');
+      await expect((account as any).connect(stranger).withdrawToken(tokenAddr, 1n)).to.be.revertedWithCustomError(account, 'A7A5Account__NotOwner');
     });
 
     it('withdrawERC721 sends NFT to owner', async function () {
@@ -372,9 +366,10 @@ describe('A7A5Account (unit)', function () {
       const {account, stranger, mockEPAddr} = await loadFixture(deployAccountFixture);
       const newImpl = await ethers.deployContract('A7A5Account', [mockEPAddr]);
       await newImpl.waitForDeployment();
-      await expect(
-        (account as any).connect(stranger).upgradeToAndCall(await newImpl.getAddress(), '0x'),
-      ).to.be.revertedWithCustomError(account, 'A7A5Account__NotOwner');
+      await expect((account as any).connect(stranger).upgradeToAndCall(await newImpl.getAddress(), '0x')).to.be.revertedWithCustomError(
+        account,
+        'A7A5Account__NotOwner',
+      );
     });
   });
 

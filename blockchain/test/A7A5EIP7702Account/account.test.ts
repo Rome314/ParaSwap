@@ -30,9 +30,7 @@ describe('A7A5EIP7702Account (unit)', function () {
     // must be signed over nonce + 1.
     const txNonce = await ethers.provider.getTransactionCount(eoa.address);
     const auth = await eoa.authorize({address: delegateAddr, nonce: txNonce + 1});
-    await (
-      await eoa.sendTransaction({type: 4, to: eoa.address, authorizationList: [auth]})
-    ).wait();
+    await (await eoa.sendTransaction({type: 4, to: eoa.address, authorizationList: [auth]})).wait();
 
     const account = await ethers.getContractAt('A7A5EIP7702Account', eoa.address);
 
@@ -54,12 +52,7 @@ describe('A7A5EIP7702Account (unit)', function () {
     const {mockEP, account, eoa} = await deployAndDelegate();
     const userOpHash = ethers.id('test-user-op');
     const sig = eoa.signingKey.sign(userOpHash).serialized;
-    const result = await (mockEP as any).callValidate.staticCall(
-      await account.getAddress(),
-      userOpHash,
-      0n,
-      sig,
-    );
+    const result = await (mockEP as any).callValidate.staticCall(await account.getAddress(), userOpHash, 0n, sig);
     expect(result).to.equal(0n); // SIG_VALIDATION_SUCCESS
   });
 
@@ -68,32 +61,24 @@ describe('A7A5EIP7702Account (unit)', function () {
     const userOpHash = ethers.id('test-user-op');
     const stranger = ethers.Wallet.createRandom();
     const sig = stranger.signingKey.sign(userOpHash).serialized;
-    const result = await (mockEP as any).callValidate.staticCall(
-      await account.getAddress(),
-      userOpHash,
-      0n,
-      sig,
-    );
+    const result = await (mockEP as any).callValidate.staticCall(await account.getAddress(), userOpHash, 0n, sig);
     expect(result).to.equal(1n); // SIG_VALIDATION_FAILED
   });
 
   it('the EOA can self-call execute (ERC-7821 batch)', async function () {
     const {account, eoa, tokenAddr} = await deployAndDelegate();
     const spender = ethers.Wallet.createRandom().address;
-    const approveData = new ethers.Interface([
-      'function approve(address spender, uint256 amount) returns (bool)',
-    ]).encodeFunctionData('approve', [spender, 777n]);
+    const approveData = new ethers.Interface(['function approve(address spender, uint256 amount) returns (bool)']).encodeFunctionData('approve', [
+      spender,
+      777n,
+    ]);
     const executionData = ethers.AbiCoder.defaultAbiCoder().encode(
       ['tuple(address target, uint256 value, bytes callData)[]'],
       [[[tokenAddr, 0n, approveData]]],
     );
     await (await (account.connect(eoa) as any).execute(ERC7821_BATCH_MODE, executionData)).wait();
 
-    const token = new ethers.Contract(
-      tokenAddr,
-      ['function allowance(address owner, address spender) view returns (uint256)'],
-      ethers.provider,
-    );
+    const token = new ethers.Contract(tokenAddr, ['function allowance(address owner, address spender) view returns (uint256)'], ethers.provider);
     expect(await token.allowance(eoa.address, spender)).to.equal(777n);
   });
 
@@ -103,8 +88,9 @@ describe('A7A5EIP7702Account (unit)', function () {
       ['tuple(address target, uint256 value, bytes callData)[]'],
       [[[tokenAddr, 0n, '0x']]],
     );
-    await expect(
-      (account.connect(deployer) as any).execute(ERC7821_BATCH_MODE, executionData),
-    ).to.be.revertedWithCustomError(account, 'AccountUnauthorized');
+    await expect((account.connect(deployer) as any).execute(ERC7821_BATCH_MODE, executionData)).to.be.revertedWithCustomError(
+      account,
+      'AccountUnauthorized',
+    );
   });
 });

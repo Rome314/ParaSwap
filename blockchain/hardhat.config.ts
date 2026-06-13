@@ -5,12 +5,8 @@ import HardhatToolboxMochaEthers from '@nomicfoundation/hardhat-toolbox-mocha-et
 // Accept either an explicit full URL or just the API key (derive the mainnet URL).
 // Blank env placeholders (`ALCHEMY_RPC_URL=`) must not block API-key fallback — use `||`, not `??`.
 const ALCHEMY_KEY = process.env.ALCHEMY_API_KEY?.trim() ?? '';
-const FORK_URL =
-  process.env.ALCHEMY_RPC_URL?.trim() ||
-  (ALCHEMY_KEY ? `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}` : '');
-const SEPOLIA_URL =
-  process.env.SEPOLIA_RPC_URL?.trim() ||
-  (ALCHEMY_KEY ? `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}` : '');
+const FORK_URL = process.env.ALCHEMY_RPC_URL?.trim() || (ALCHEMY_KEY ? `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}` : '');
+const SEPOLIA_URL = process.env.SEPOLIA_RPC_URL?.trim() || (ALCHEMY_KEY ? `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}` : '');
 
 // Optional: pin to a block for deterministic fork tests (reproducible whale
 // balances / pool state). Override with FORK_BLOCK; leave unset to use latest.

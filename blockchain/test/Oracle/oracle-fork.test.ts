@@ -23,7 +23,11 @@ const V3_POOL_ABI = ['function increaseObservationCardinalityNext(uint16 observa
 
 const CHAINLINK_ABI = ['function latestRoundData() view returns (uint80,int256,uint256,uint256,uint80)'];
 
-const V2_PAIR_ABI = ['function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)', 'function token0() view returns (address)', 'function token1() view returns (address)'];
+const V2_PAIR_ABI = [
+  'function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
+  'function token0() view returns (address)',
+  'function token1() view returns (address)',
+];
 
 // ── Fixture ───────────────────────────────────────────────────────────────────
 
@@ -79,19 +83,11 @@ async function deployOracleForkFixture() {
   ]);
   await nativeOracle.waitForDeployment();
 
-  const usdtOracle = await ethers.deployContract('UsdtNativeOracle', [
-    ADDRESSES.CHAINLINK_USDT_ETH,
-    MAX_STALENESS,
-    deployerAddr,
-  ]);
+  const usdtOracle = await ethers.deployContract('UsdtNativeOracle', [ADDRESSES.CHAINLINK_USDT_ETH, MAX_STALENESS, deployerAddr]);
   await usdtOracle.waitForDeployment();
 
   // Deploy V2 spot oracle (no warmup needed — reads live reserves).
-  const v2Oracle = await ethers.deployContract('A7A5UsdtV2Oracle', [
-    ADDRESSES.V2_PAIR_USDT_A7A5,
-    ADDRESSES.A7A5,
-    ADDRESSES.USDT,
-  ]);
+  const v2Oracle = await ethers.deployContract('A7A5UsdtV2Oracle', [ADDRESSES.V2_PAIR_USDT_A7A5, ADDRESSES.A7A5, ADDRESSES.USDT]);
   await v2Oracle.waitForDeployment();
 
   // A7A5NativeOracle backed by V2 spot price; wa7a5 is passed only for a7a5Dec lookup.
@@ -278,10 +274,7 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
     it('tokenPrice() reverts when the quote is stale', async function () {
       const {nativeOracle} = await loadFixture(deployOracleForkFixture);
       await networkHelpers.time.increase(MAX_STALENESS + 3600);
-      await expect((nativeOracle as any).tokenPrice()).to.be.revertedWithCustomError(
-        nativeOracle,
-        'A7A5NativeOracle__StalePrice',
-      );
+      await expect((nativeOracle as any).tokenPrice()).to.be.revertedWithCustomError(nativeOracle, 'A7A5NativeOracle__StalePrice');
     });
   });
 
@@ -327,10 +320,7 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
     it('tokenPrice() reverts when the quote is stale', async function () {
       const {usdtOracle} = await loadFixture(deployOracleForkFixture);
       await networkHelpers.time.increase(MAX_STALENESS + 3600);
-      await expect((usdtOracle as any).tokenPrice()).to.be.revertedWithCustomError(
-        usdtOracle,
-        'UsdtNativeOracle__StalePrice',
-      );
+      await expect((usdtOracle as any).tokenPrice()).to.be.revertedWithCustomError(usdtOracle, 'UsdtNativeOracle__StalePrice');
     });
   });
 
@@ -344,9 +334,7 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
       const pair = new ethers.Contract(ADDRESSES.V2_PAIR_USDT_A7A5, V2_PAIR_ABI, ethers.provider);
       const [r0, r1] = await pair.getReserves();
       const token0: string = await pair.token0();
-      const [reserveA7A5, reserveUSDT] = token0.toLowerCase() === ADDRESSES.A7A5.toLowerCase()
-        ? [BigInt(r0), BigInt(r1)]
-        : [BigInt(r1), BigInt(r0)];
+      const [reserveA7A5, reserveUSDT] = token0.toLowerCase() === ADDRESSES.A7A5.toLowerCase() ? [BigInt(r0), BigInt(r1)] : [BigInt(r1), BigInt(r0)];
 
       console.log(`\n  V2 reserves:     ${formatUnits(reserveA7A5, 6)} A7A5 | ${formatUnits(reserveUSDT, 6)} USDT`);
       console.log(`  A7A5/USDT V2:    ${formatUnits(answer, 8)} USDT per A7A5`);
@@ -357,8 +345,8 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
     it('latestAnswer() is in a plausible range (0.01–1000 USDT per A7A5)', async function () {
       const {v2Oracle} = await loadFixture(deployOracleForkFixture);
       const answer: bigint = await (v2Oracle as any).latestAnswer();
-      expect(answer).to.be.greaterThan(1_000_000n);      // > 0.01 USDT (8 dec)
-      expect(answer).to.be.lessThan(100_000_000_000n);   // < 1000 USDT (8 dec)
+      expect(answer).to.be.greaterThan(1_000_000n); // > 0.01 USDT (8 dec)
+      expect(answer).to.be.lessThan(100_000_000_000n); // < 1000 USDT (8 dec)
     });
 
     it('latestRoundData() answer matches latestAnswer() and timestamps equal block.timestamp', async function () {
@@ -393,9 +381,7 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
       const pair = new ethers.Contract(ADDRESSES.V2_PAIR_USDT_A7A5, V2_PAIR_ABI, ethers.provider);
       const [r0, r1] = await pair.getReserves();
       const token0: string = await pair.token0();
-      const [reserveA7A5, reserveUSDT] = token0.toLowerCase() === ADDRESSES.A7A5.toLowerCase()
-        ? [BigInt(r0), BigInt(r1)]
-        : [BigInt(r1), BigInt(r0)];
+      const [reserveA7A5, reserveUSDT] = token0.toLowerCase() === ADDRESSES.A7A5.toLowerCase() ? [BigInt(r0), BigInt(r1)] : [BigInt(r1), BigInt(r0)];
 
       const [price, validUntil] = await (nativeOracleV2 as any).tokenPriceData();
       const block = await ethers.provider.getBlock('latest');
@@ -454,8 +440,8 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
     it('price is in a plausible range (1–100M A7A5 per ETH)', async function () {
       const {nativeOracleV2} = await loadFixture(deployOracleForkFixture);
       const [price] = await (nativeOracleV2 as any).tokenPriceData();
-      expect(BigInt(price)).to.be.greaterThan(1_000_000n);          // > 1 A7A5/ETH (6 dec)
-      expect(BigInt(price)).to.be.lessThan(100_000_000_000_000n);   // < 100M A7A5/ETH (6 dec)
+      expect(BigInt(price)).to.be.greaterThan(1_000_000n); // > 1 A7A5/ETH (6 dec)
+      expect(BigInt(price)).to.be.lessThan(100_000_000_000_000n); // < 100M A7A5/ETH (6 dec)
     });
 
     it('tokenPriceData() does NOT revert when the Chainlink answer is stale', async function () {
@@ -470,10 +456,7 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
     it('tokenPrice() reverts when the quote is stale', async function () {
       const {nativeOracleV2} = await loadFixture(deployOracleForkFixture);
       await networkHelpers.time.increase(MAX_STALENESS + 3600);
-      await expect((nativeOracleV2 as any).tokenPrice()).to.be.revertedWithCustomError(
-        nativeOracleV2,
-        'A7A5NativeOracle__StalePrice',
-      );
+      await expect((nativeOracleV2 as any).tokenPrice()).to.be.revertedWithCustomError(nativeOracleV2, 'A7A5NativeOracle__StalePrice');
     });
   });
 

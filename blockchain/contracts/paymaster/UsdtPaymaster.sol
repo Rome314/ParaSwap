@@ -26,7 +26,12 @@ error UsdtPaymaster__ZeroAddress();
  * @title UsdtPaymaster
  * @notice ERC-4337 paymaster that accepts USDT for gas (standard ERC-20, no FOT gross-up).
  */
-contract UsdtPaymaster is PaymasterERC20, Ownable2Step, Pausable, ITokenPaymaster {
+contract UsdtPaymaster is
+    PaymasterERC20,
+    Ownable2Step,
+    Pausable,
+    ITokenPaymaster
+{
     using ERC4337Utils for PackedUserOperation;
     using SafeERC20 for IERC20;
 
@@ -65,7 +70,8 @@ contract UsdtPaymaster is PaymasterERC20, Ownable2Step, Pausable, ITokenPaymaste
     }
 
     function setOracle(UsdtNativeOracle newOracle) external onlyOwner {
-        if (address(newOracle) == address(0)) revert UsdtPaymaster__ZeroAddress();
+        if (address(newOracle) == address(0))
+            revert UsdtPaymaster__ZeroAddress();
         emit OracleUpdated(address(_oracle), address(newOracle));
         _oracle = newOracle;
     }

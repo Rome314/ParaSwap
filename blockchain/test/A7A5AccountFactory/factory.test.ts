@@ -1,12 +1,7 @@
 import {expect} from 'chai';
 
 import {ADDRESSES} from '../../common/addresses.js';
-import {
-  ACCOUNT_FACTORY_ABI,
-  buildInitCode,
-  encodeInitializeWebAuthn,
-  ENTRYPOINT_ABI,
-} from '../../common/erc4337.js';
+import {ACCOUNT_FACTORY_ABI, buildInitCode, encodeInitializeWebAuthn, ENTRYPOINT_ABI} from '../../common/erc4337.js';
 import {conn, ethers, loadFixture} from '../Paymaster/consts.js';
 import {testP256PublicKey} from '../A7A5WebAuthnAccount/webauthn-helpers.js';
 
@@ -35,11 +30,7 @@ describe('A7A5AccountFactory', function () {
     const spenderB = ethers.Wallet.createRandom().address;
     const unlisted = ethers.Wallet.createRandom().address;
 
-    const factory = await ethers.deployContract('A7A5AccountFactory', [
-      implAddr,
-      delegateAddr,
-      [spenderA, spenderB],
-    ]);
+    const factory = await ethers.deployContract('A7A5AccountFactory', [implAddr, delegateAddr, [spenderA, spenderB]]);
     await factory.waitForDeployment();
     const factoryAddr = await factory.getAddress();
 
@@ -102,15 +93,12 @@ describe('A7A5AccountFactory', function () {
     const {factory, initCalldata, tokenAAddr, spenderA} = await loadFixture(deployFactoryFixture);
     const predicted: string = await (factory as any).predictAddress(initCalldata);
 
-    await (factory as any).cloneAndInitializeWithApprovals(initCalldata, [
-      [tokenAAddr, spenderA, 123n],
-    ]);
+    await (factory as any).cloneAndInitializeWithApprovals(initCalldata, [[tokenAAddr, spenderA, 123n]]);
     expect(await ethers.provider.getCode(predicted)).to.not.equal('0x');
   });
 
   it('grants creation-time allowances (custom, max and zero amounts)', async function () {
-    const {factory, initCalldata, tokenAAddr, tokenBAddr, spenderA, spenderB} =
-      await loadFixture(deployFactoryFixture);
+    const {factory, initCalldata, tokenAAddr, tokenBAddr, spenderA, spenderB} = await loadFixture(deployFactoryFixture);
     const predicted: string = await (factory as any).predictAddress(initCalldata);
 
     await (factory as any).cloneAndInitializeWithApprovals(initCalldata, [
@@ -129,9 +117,10 @@ describe('A7A5AccountFactory', function () {
 
   it('reverts for a spender outside the whitelist', async function () {
     const {factory, initCalldata, tokenAAddr, unlisted} = await loadFixture(deployFactoryFixture);
-    await expect(
-      (factory as any).cloneAndInitializeWithApprovals(initCalldata, [[tokenAAddr, unlisted, 1n]]),
-    ).to.be.revertedWithCustomError(factory, 'A7A5AccountFactory__SpenderNotAllowed');
+    await expect((factory as any).cloneAndInitializeWithApprovals(initCalldata, [[tokenAAddr, unlisted, 1n]])).to.be.revertedWithCustomError(
+      factory,
+      'A7A5AccountFactory__SpenderNotAllowed',
+    );
   });
 
   it('initializeApprovals cannot be called after creation via either factory path', async function () {
@@ -140,10 +129,7 @@ describe('A7A5AccountFactory', function () {
     const predicted: string = await (factory as any).predictAddress(initCalldata);
     await (factory as any).cloneAndInitialize(initCalldata);
     const account = await ethers.getContractAt('A7A5WebAuthnAccount', predicted);
-    await expect((account as any).initializeApprovals([[tokenAAddr, spenderA, 1n]])).to.be.revertedWithCustomError(
-      account,
-      'InvalidInitialization',
-    );
+    await expect((account as any).initializeApprovals([[tokenAAddr, spenderA, 1n]])).to.be.revertedWithCustomError(account, 'InvalidInitialization');
 
     // Second valid P-256 key → different salt / account address.
     const {p256} = await import('@noble/curves/p256');

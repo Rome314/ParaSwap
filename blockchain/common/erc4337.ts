@@ -60,8 +60,7 @@ export const WEBAUTHN_ACCOUNT_ABI = [
 ] as const;
 
 // ERC-7821 batch mode: callType=0x01, execType=0x00, zero selectors/payload.
-export const ERC7821_BATCH_MODE =
-  '0x0100000000000000000000000000000000000000000000000000000000000000' as const;
+export const ERC7821_BATCH_MODE = '0x0100000000000000000000000000000000000000000000000000000000000000' as const;
 
 // EntryPoint v0.8 computes userOpHash as an EIP-712 digest with this domain/type, which
 // lets EOAs (EIP-7702 accounts) sign UserOps via eth_signTypedData_v4 in a browser wallet.
@@ -206,11 +205,7 @@ export function selectPaymaster(token: GasToken, addresses?: PaymasterAddresses)
 }
 
 /** Build ERC-4337 initCode: factory (20 bytes) + cloneAndInitialize(calldata). */
-export function buildInitCode(
-  ethers: MinimalEthers,
-  factoryAddress: string,
-  initializeCalldata: string,
-): string {
+export function buildInitCode(ethers: MinimalEthers, factoryAddress: string, initializeCalldata: string): string {
   const iface = new ethers.Interface(['function cloneAndInitialize(bytes callData)']);
   const factoryData = iface.encodeFunctionData('cloneAndInitialize', [initializeCalldata]);
   return ethers.solidityPacked(['address', 'bytes'], [factoryAddress, factoryData]);
@@ -238,20 +233,12 @@ export function encodeInitializeWebAuthn(ethers: MinimalEthers, qx: string, qy: 
 }
 
 /** Build ERC-7821 execute(mode, batch) callData for a single target call. */
-export function buildErc7821ExecuteCalldata(
-  ethers: MinimalEthers,
-  target: string,
-  value: bigint,
-  innerCalldata: string,
-): string {
+export function buildErc7821ExecuteCalldata(ethers: MinimalEthers, target: string, value: bigint, innerCalldata: string): string {
   return buildErc7821BatchCalldata(ethers, [{target, value, callData: innerCalldata}]);
 }
 
 /** Build ERC-7821 execute(mode, batch) callData for multiple calls. */
-export function buildErc7821BatchCalldata(
-  ethers: MinimalEthers,
-  calls: {target: string; value: bigint; callData: string}[],
-): string {
+export function buildErc7821BatchCalldata(ethers: MinimalEthers, calls: {target: string; value: bigint; callData: string}[]): string {
   const executionData = ethers.AbiCoder.defaultAbiCoder().encode(
     ['tuple(address target, uint256 value, bytes callData)[]'],
     [calls.map((c) => [c.target, c.value, c.callData])],
@@ -261,10 +248,7 @@ export function buildErc7821BatchCalldata(
 }
 
 /** ERC-20 approve calls for an ERC-7821 batch. */
-export function approvalBatchCalls(
-  ethers: MinimalEthers,
-  approvals: TokenApproval[],
-): {target: string; value: bigint; callData: string}[] {
+export function approvalBatchCalls(ethers: MinimalEthers, approvals: TokenApproval[]): {target: string; value: bigint; callData: string}[] {
   const iface = new ethers.Interface(['function approve(address spender, uint256 amount) returns (bool)']);
   return approvals.map((a) => ({
     target: a.token,
@@ -274,11 +258,7 @@ export function approvalBatchCalls(
 }
 
 /** Build an unsigned PackedUserOperation (signature slot empty). */
-export async function buildUserOp(
-  ethers: MinimalEthers,
-  entryPoint: MinimalEntryPoint,
-  params: BuildUserOpParams,
-): Promise<PackedUserOp> {
+export async function buildUserOp(ethers: MinimalEthers, entryPoint: MinimalEntryPoint, params: BuildUserOpParams): Promise<PackedUserOp> {
   const verificationGasLimit = params.verificationGasLimit ?? DEFAULTS.verificationGasLimit;
   const callGasLimit = params.callGasLimit ?? DEFAULTS.callGasLimit;
   const preVerificationGas = params.preVerificationGas ?? DEFAULTS.preVerificationGas;
@@ -297,17 +277,7 @@ export async function buildUserOp(
     ? ethers.solidityPacked(['address', 'uint128', 'uint128', 'bytes'], [params.paymaster, pmVerif, pmPostOp, '0x'])
     : '0x';
 
-  return [
-    params.sender,
-    nonce,
-    params.initCode ?? '0x',
-    params.callData,
-    accountGasLimits,
-    preVerificationGas,
-    gasFees,
-    paymasterAndData,
-    '0x',
-  ];
+  return [params.sender, nonce, params.initCode ?? '0x', params.callData, accountGasLimits, preVerificationGas, gasFees, paymasterAndData, '0x'];
 }
 
 /**
@@ -327,11 +297,7 @@ export async function buildSignedUserOp(
 }
 
 /** Build ERC-4337 initCode: factoryV2 (20 bytes) + deployAccount(owner_). */
-export function buildInitCodeECDSA(
-  ethers: MinimalEthers,
-  factoryV2Address: string,
-  ownerAddress: string,
-): string {
+export function buildInitCodeECDSA(ethers: MinimalEthers, factoryV2Address: string, ownerAddress: string): string {
   const iface = new ethers.Interface(ECDSA_ACCOUNT_FACTORY_V2_ABI);
   const factoryData = iface.encodeFunctionData('deployAccount', [ownerAddress]);
   return ethers.solidityPacked(['address', 'bytes'], [factoryV2Address, factoryData]);
@@ -345,10 +311,7 @@ export function buildInitCodeECDSAWithApprovals(
   approvals: TokenApproval[],
 ): string {
   const iface = new ethers.Interface(ECDSA_ACCOUNT_FACTORY_V2_ABI);
-  const factoryData = iface.encodeFunctionData('deployAccountWithApprovals', [
-    ownerAddress,
-    approvals.map((a) => [a.token, a.spender, a.amount]),
-  ]);
+  const factoryData = iface.encodeFunctionData('deployAccountWithApprovals', [ownerAddress, approvals.map((a) => [a.token, a.spender, a.amount])]);
   return ethers.solidityPacked(['address', 'bytes'], [factoryV2Address, factoryData]);
 }
 

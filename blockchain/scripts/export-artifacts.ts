@@ -110,10 +110,7 @@ async function syncBackendContracts() {
 
   try {
     const {ethereum} = await import('../../packages/contracts/src/addresses.ts');
-    fs.writeFileSync(
-      path.join(BACKEND_CONTRACTS, 'addresses.json'),
-      `${JSON.stringify({ethereum}, null, 2)}\n`
-    );
+    fs.writeFileSync(path.join(BACKEND_CONTRACTS, 'addresses.json'), `${JSON.stringify({ethereum}, null, 2)}\n`);
     console.log('[export-artifacts] backend/contracts/addresses.json');
   } catch (err) {
     console.warn('[export-artifacts] skip addresses.json:', err);

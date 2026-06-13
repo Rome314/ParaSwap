@@ -136,7 +136,9 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
       console.log(`  Paymaster deposit:  ${ethers.formatEther(pmDepositAfter)} ETH`);
       console.log('  ── Deltas ────────────────────────────────────────────');
       console.log(`  USDT received:       +${formatUnits6(accUsdtAfter - accUsdtBefore)}`);
-      console.log(`  A7A5 lost:           -${formatUnits6(accA7A5Before - accA7A5After)}  (swap=${formatUnits6(A7A5_SWAP_IN)} + gas=${formatUnits6(gasInA7A5)})`);
+      console.log(
+        `  A7A5 lost:           -${formatUnits6(accA7A5Before - accA7A5After)}  (swap=${formatUnits6(A7A5_SWAP_IN)} + gas=${formatUnits6(gasInA7A5)})`,
+      );
       console.log(`  Paymaster A7A5 gain: +${formatUnits6(gasInA7A5)}`);
       console.log(`  Paymaster ETH spent: -${ethers.formatEther(gasInEth)} ETH`);
 

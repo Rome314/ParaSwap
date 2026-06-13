@@ -69,11 +69,28 @@ contract A7A5Account is
 
     // ── Events ────────────────────────────────────────────────────────────────
 
-    event ApprovalSet(address indexed token, address indexed spender, uint256 amount);
-    event TokenWithdrawn(address indexed token, address indexed to, uint256 amount);
+    event ApprovalSet(
+        address indexed token,
+        address indexed spender,
+        uint256 amount
+    );
+    event TokenWithdrawn(
+        address indexed token,
+        address indexed to,
+        uint256 amount
+    );
     event NativeWithdrawn(address indexed to, uint256 amount);
-    event ERC721Withdrawn(address indexed nft, address indexed to, uint256 tokenId);
-    event ERC1155Withdrawn(address indexed nft, address indexed to, uint256 id, uint256 amount);
+    event ERC721Withdrawn(
+        address indexed nft,
+        address indexed to,
+        uint256 tokenId
+    );
+    event ERC1155Withdrawn(
+        address indexed nft,
+        address indexed to,
+        uint256 id,
+        uint256 amount
+    );
 
     // ── Modifiers ─────────────────────────────────────────────────────────────
 
@@ -86,7 +103,8 @@ contract A7A5Account is
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(IEntryPoint entryPoint_) EIP712("A7A5Account", "1") {
-        if (address(entryPoint_) == address(0)) revert A7A5Account__ZeroAddress();
+        if (address(entryPoint_) == address(0))
+            revert A7A5Account__ZeroAddress();
         _ENTRY_POINT = entryPoint_;
         _disableInitializers();
     }
@@ -106,10 +124,19 @@ contract A7A5Account is
      * it runs exactly once — {A7A5AccountFactoryV2} always calls it (even with an empty
      * list) so the slot is never left open for a third party to claim.
      */
-    function initializeApprovals(TokenApproval[] calldata approvals) external reinitializer(2) {
+    function initializeApprovals(
+        TokenApproval[] calldata approvals
+    ) external reinitializer(2) {
         for (uint256 i; i < approvals.length; ++i) {
-            IERC20(approvals[i].token).forceApprove(approvals[i].spender, approvals[i].amount);
-            emit ApprovalSet(approvals[i].token, approvals[i].spender, approvals[i].amount);
+            IERC20(approvals[i].token).forceApprove(
+                approvals[i].spender,
+                approvals[i].amount
+            );
+            emit ApprovalSet(
+                approvals[i].token,
+                approvals[i].spender,
+                approvals[i].amount
+            );
         }
     }
 
@@ -136,7 +163,10 @@ contract A7A5Account is
         bytes calldata signature
     ) internal view override returns (bool) {
         bytes32 ethHash = MessageHashUtils.toEthSignedMessageHash(hash);
-        (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(ethHash, signature);
+        (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(
+            ethHash,
+            signature
+        );
         return err == ECDSA.RecoverError.NoError && recovered == owner();
     }
 
@@ -167,7 +197,11 @@ contract A7A5Account is
      * @notice Set or revoke an ERC-20 allowance from this account.
      * Use `amount = 0` to revoke. Uses forceApprove for USDT/non-standard token compatibility.
      */
-    function setApproval(address token, address spender, uint256 amount) external onlyOwner {
+    function setApproval(
+        address token,
+        address spender,
+        uint256 amount
+    ) external onlyOwner {
         IERC20(token).forceApprove(spender, amount);
         emit ApprovalSet(token, spender, amount);
     }
@@ -175,17 +209,29 @@ contract A7A5Account is
     /**
      * @notice Batch version of {setApproval}.
      */
-    function setApprovals(TokenApproval[] calldata approvals) external onlyOwner {
+    function setApprovals(
+        TokenApproval[] calldata approvals
+    ) external onlyOwner {
         for (uint256 i; i < approvals.length; ++i) {
-            IERC20(approvals[i].token).forceApprove(approvals[i].spender, approvals[i].amount);
-            emit ApprovalSet(approvals[i].token, approvals[i].spender, approvals[i].amount);
+            IERC20(approvals[i].token).forceApprove(
+                approvals[i].spender,
+                approvals[i].amount
+            );
+            emit ApprovalSet(
+                approvals[i].token,
+                approvals[i].spender,
+                approvals[i].amount
+            );
         }
     }
 
     // ── Withdrawal functions ──────────────────────────────────────────────────
 
     /// @notice Withdraw ERC-20 tokens to the owner.
-    function withdrawToken(address token, uint256 amount) external onlyOwner nonReentrant {
+    function withdrawToken(
+        address token,
+        uint256 amount
+    ) external onlyOwner nonReentrant {
         IERC20(token).safeTransfer(owner(), amount);
         emit TokenWithdrawn(token, owner(), amount);
     }
@@ -213,7 +259,10 @@ contract A7A5Account is
     }
 
     /// @notice Withdraw an ERC-721 NFT to the owner.
-    function withdrawERC721(address nft, uint256 tokenId) external onlyOwner nonReentrant {
+    function withdrawERC721(
+        address nft,
+        uint256 tokenId
+    ) external onlyOwner nonReentrant {
         IERC721(nft).safeTransferFrom(address(this), owner(), tokenId);
         emit ERC721Withdrawn(nft, owner(), tokenId);
     }
@@ -225,7 +274,13 @@ contract A7A5Account is
         uint256 amount,
         bytes calldata data
     ) external onlyOwner nonReentrant {
-        IERC1155(nft).safeTransferFrom(address(this), owner(), id, amount, data);
+        IERC1155(nft).safeTransferFrom(
+            address(this),
+            owner(),
+            id,
+            amount,
+            data
+        );
         emit ERC1155Withdrawn(nft, owner(), id, amount);
     }
 

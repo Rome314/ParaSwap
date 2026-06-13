@@ -30,7 +30,8 @@ contract A7A5AccountFactoryV2 {
     error A7A5AccountFactoryV2__SpenderNotAllowed(address spender);
 
     constructor(address impl_, address[] memory allowedSpenders_) {
-        if (impl_.code.length == 0) revert A7A5AccountFactoryV2__InvalidImplementation();
+        if (impl_.code.length == 0)
+            revert A7A5AccountFactoryV2__InvalidImplementation();
         _impl = impl_;
         for (uint256 i; i < allowedSpenders_.length; ++i) {
             isAllowedSpender[allowedSpenders_[i]] = true;
@@ -53,11 +54,21 @@ contract A7A5AccountFactoryV2 {
                 abi.encode(_impl, _initData(owner_))
             )
         );
-        return address(
-            uint160(
-                uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, bytecodeHash)))
-            )
-        );
+        return
+            address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                bytes1(0xff),
+                                address(this),
+                                salt,
+                                bytecodeHash
+                            )
+                        )
+                    )
+                )
+            );
     }
 
     /**
@@ -78,7 +89,9 @@ contract A7A5AccountFactoryV2 {
     ) public returns (address) {
         for (uint256 i; i < approvals.length; ++i) {
             if (!isAllowedSpender[approvals[i].spender]) {
-                revert A7A5AccountFactoryV2__SpenderNotAllowed(approvals[i].spender);
+                revert A7A5AccountFactoryV2__SpenderNotAllowed(
+                    approvals[i].spender
+                );
             }
         }
         address predicted = predictAddress(owner_);

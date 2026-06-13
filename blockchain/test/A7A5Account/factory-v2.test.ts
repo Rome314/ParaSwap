@@ -47,8 +47,7 @@ describe('A7A5AccountFactoryV2', function () {
   });
 
   it('deployAccountWithApprovals grants creation-time allowances', async function () {
-    const {factory, ownerWallet, tokenAAddr, tokenBAddr, spenderA, spenderB} =
-      await loadFixture(deployFactoryV2Fixture);
+    const {factory, ownerWallet, tokenAAddr, tokenBAddr, spenderA, spenderB} = await loadFixture(deployFactoryV2Fixture);
     const predicted: string = await (factory as any).predictAddress(ownerWallet.address);
 
     await (factory as any).deployAccountWithApprovals(ownerWallet.address, [
@@ -65,9 +64,10 @@ describe('A7A5AccountFactoryV2', function () {
 
   it('reverts for a spender outside the whitelist', async function () {
     const {factory, ownerWallet, tokenAAddr, unlisted} = await loadFixture(deployFactoryV2Fixture);
-    await expect(
-      (factory as any).deployAccountWithApprovals(ownerWallet.address, [[tokenAAddr, unlisted, 1n]]),
-    ).to.be.revertedWithCustomError(factory, 'A7A5AccountFactoryV2__SpenderNotAllowed');
+    await expect((factory as any).deployAccountWithApprovals(ownerWallet.address, [[tokenAAddr, unlisted, 1n]])).to.be.revertedWithCustomError(
+      factory,
+      'A7A5AccountFactoryV2__SpenderNotAllowed',
+    );
   });
 
   it('initializeApprovals cannot be replayed after factory seals it', async function () {
@@ -76,9 +76,7 @@ describe('A7A5AccountFactoryV2', function () {
     const predicted: string = await (factory as any).predictAddress(ownerWallet.address);
     const account = await ethers.getContractAt('A7A5Account', predicted);
 
-    await expect(
-      (account as any).initializeApprovals([[tokenAAddr, spenderA, 2n]]),
-    ).to.be.revertedWithCustomError(account, 'InvalidInitialization');
+    await expect((account as any).initializeApprovals([[tokenAAddr, spenderA, 2n]])).to.be.revertedWithCustomError(account, 'InvalidInitialization');
   });
 
   it('two different owners get different counterfactual addresses', async function () {
@@ -91,9 +89,7 @@ describe('A7A5AccountFactoryV2', function () {
   });
 
   it('reverts if impl has no code', async function () {
-    await expect(
-      ethers.deployContract('A7A5AccountFactoryV2', [ethers.Wallet.createRandom().address, []]),
-    ).to.be.revertedWithCustomError(
+    await expect(ethers.deployContract('A7A5AccountFactoryV2', [ethers.Wallet.createRandom().address, []])).to.be.revertedWithCustomError(
       await ethers.getContractFactory('A7A5AccountFactoryV2'),
       'A7A5AccountFactoryV2__InvalidImplementation',
     );

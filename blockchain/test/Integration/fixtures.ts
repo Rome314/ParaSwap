@@ -56,11 +56,7 @@ export async function deployAAStackFixture() {
   await a7a5Oracle.waitForDeployment();
   const a7a5OracleAddr = await a7a5Oracle.getAddress();
 
-  const usdtOracle = await ethers.deployContract('UsdtNativeOracle', [
-    ADDRESSES.CHAINLINK_USDT_ETH,
-    MAX_STALENESS,
-    deployerAddr,
-  ]);
+  const usdtOracle = await ethers.deployContract('UsdtNativeOracle', [ADDRESSES.CHAINLINK_USDT_ETH, MAX_STALENESS, deployerAddr]);
   await usdtOracle.waitForDeployment();
   const usdtOracleAddr = await usdtOracle.getAddress();
 
@@ -68,23 +64,13 @@ export async function deployAAStackFixture() {
 
   const entryPoint = new ethers.Contract(ADDRESSES.ENTRYPOINT_V08, ENTRYPOINT_ABI, deployer);
 
-  const a7a5Paymaster = await ethers.deployContract('A7A5Paymaster', [
-    ADDRESSES.ENTRYPOINT_V08,
-    ADDRESSES.A7A5,
-    a7a5OracleAddr,
-    deployerAddr,
-  ]);
+  const a7a5Paymaster = await ethers.deployContract('A7A5Paymaster', [ADDRESSES.ENTRYPOINT_V08, ADDRESSES.A7A5, a7a5OracleAddr, deployerAddr]);
   await a7a5Paymaster.waitForDeployment();
   const a7a5PaymasterAddr = await a7a5Paymaster.getAddress();
   await (await (a7a5Paymaster as any).deposit({value: ethers.parseEther('5')})).wait();
   await (await (a7a5Paymaster as any).addStake(86_400, {value: ethers.parseEther('1')})).wait();
 
-  const usdtPaymaster = await ethers.deployContract('UsdtPaymaster', [
-    ADDRESSES.ENTRYPOINT_V08,
-    ADDRESSES.USDT,
-    usdtOracleAddr,
-    deployerAddr,
-  ]);
+  const usdtPaymaster = await ethers.deployContract('UsdtPaymaster', [ADDRESSES.ENTRYPOINT_V08, ADDRESSES.USDT, usdtOracleAddr, deployerAddr]);
   await usdtPaymaster.waitForDeployment();
   const usdtPaymasterAddr = await usdtPaymaster.getAddress();
   await (await (usdtPaymaster as any).deposit({value: ethers.parseEther('5')})).wait();
@@ -173,10 +159,7 @@ const ERC7821_BATCH_MODE = '0x01000000000000000000000000000000000000000000000000
 /** Approve via ERC-7821 execute, called as the EntryPoint (authorized executor). */
 export async function approveErc7821(account: any, token: string, spender: string): Promise<void> {
   const data = new ethers.Interface(ERC20_APPROVE_ABI).encodeFunctionData('approve', [spender, ethers.MaxUint256]);
-  const executionData = ethers.AbiCoder.defaultAbiCoder().encode(
-    ['tuple(address target, uint256 value, bytes callData)[]'],
-    [[[token, 0n, data]]],
-  );
+  const executionData = ethers.AbiCoder.defaultAbiCoder().encode(['tuple(address target, uint256 value, bytes callData)[]'], [[[token, 0n, data]]]);
   const ep = await ethers.getImpersonatedSigner(ADDRESSES.ENTRYPOINT_V08);
   await conn.networkHelpers.setBalance(ADDRESSES.ENTRYPOINT_V08, ethers.parseEther('1'));
   await (await account.connect(ep).execute(ERC7821_BATCH_MODE, executionData, {gasLimit: 500_000})).wait();

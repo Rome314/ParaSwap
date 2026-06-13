@@ -47,17 +47,12 @@ async function delegateEoa(f: Awaited<ReturnType<typeof deployAAStackFixture>>) 
   const eoa = ethers.Wallet.createRandom().connect(ethers.provider);
   await networkHelpers.setBalance(eoa.address, ethers.parseEther('10'));
 
-  const approveCalldata = buildErc7821BatchCalldata(
-    ethers as any,
-    approvalBatchCalls(ethers as any, f.accountApprovals),
-  );
+  const approveCalldata = buildErc7821BatchCalldata(ethers as any, approvalBatchCalls(ethers as any, f.accountApprovals));
 
   // Self-sent type-4: the tx consumes the current nonce, the authorization signs nonce + 1.
   const txNonce = await ethers.provider.getTransactionCount(eoa.address);
   const auth = await eoa.authorize({address: f.eip7702DelegateAddr, nonce: txNonce + 1});
-  await (
-    await eoa.sendTransaction({type: 4, to: eoa.address, data: approveCalldata, authorizationList: [auth]})
-  ).wait();
+  await (await eoa.sendTransaction({type: 4, to: eoa.address, data: approveCalldata, authorizationList: [auth]})).wait();
 
   await fundFromWhale(conn, ADDRESSES.A7A5, ADDRESSES.A7A5_WHALE, eoa.address, 5_000_000_000n);
   await fundFromWhale(conn, ADDRESSES.USDT, ADDRESSES.USDT_WHALE, eoa.address, 500_000_000n);
@@ -77,11 +72,7 @@ async function buildTypedDataSignedUserOp(
     paymaster,
   });
   // Sanity: the typed-data digest must equal the EntryPoint's userOpHash.
-  const typedHash = ethers.TypedDataEncoder.hash(
-    ENTRYPOINT_DOMAIN,
-    PACKED_USER_OP_TYPES,
-    userOpToTypedDataMessage(op),
-  );
+  const typedHash = ethers.TypedDataEncoder.hash(ENTRYPOINT_DOMAIN, PACKED_USER_OP_TYPES, userOpToTypedDataMessage(op));
   expect(typedHash).to.equal(await (f.entryPoint as any).getUserOpHash(op));
   op[8] = await eoa.signTypedData(ENTRYPOINT_DOMAIN, PACKED_USER_OP_TYPES, userOpToTypedDataMessage(op));
   return op;

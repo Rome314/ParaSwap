@@ -39,7 +39,10 @@ contract UsdtNativeOracle is Ownable2Step {
         address owner_
     ) Ownable(owner_) {
         if (maxStaleness_ < MIN_MAX_STALENESS)
-            revert UsdtNativeOracle__StalenessTooLow(maxStaleness_, MIN_MAX_STALENESS);
+            revert UsdtNativeOracle__StalenessTooLow(
+                maxStaleness_,
+                MIN_MAX_STALENESS
+            );
 
         USDT_ETH = usdtEth;
         uint8 feedDec = usdtEth.decimals();
@@ -50,14 +53,22 @@ contract UsdtNativeOracle is Ownable2Step {
 
     function setMaxStaleness(uint256 newMaxStaleness) external onlyOwner {
         if (newMaxStaleness < MIN_MAX_STALENESS)
-            revert UsdtNativeOracle__StalenessTooLow(newMaxStaleness, MIN_MAX_STALENESS);
+            revert UsdtNativeOracle__StalenessTooLow(
+                newMaxStaleness,
+                MIN_MAX_STALENESS
+            );
         uint256 old = maxStaleness;
         maxStaleness = newMaxStaleness;
         emit UsdtMaxStalenessUpdated(old, newMaxStaleness);
     }
 
-    function tokenPriceData() public view returns (uint256 price, uint48 validUntil) {
-        (, int256 ethPerUsdt, , uint256 updatedAt, ) = USDT_ETH.latestRoundData();
+    function tokenPriceData()
+        public
+        view
+        returns (uint256 price, uint48 validUntil)
+    {
+        (, int256 ethPerUsdt, , uint256 updatedAt, ) = USDT_ETH
+            .latestRoundData();
         if (ethPerUsdt <= 0) revert UsdtNativeOracle__InvalidPrice();
 
         price = NUMERATOR / uint256(ethPerUsdt);

@@ -15,6 +15,9 @@ function fmt(v: bigint, d = 6) {
 }
 
 async function main() {
+  // #region agent log
+  fetch('http://127.0.0.1:7723/ingest/91286a68-cbca-4c42-a1c4-fd2eccc0dee1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'021ce4'},body:JSON.stringify({sessionId:'021ce4',runId:'post-fix',hypothesisId:'B',location:'diagnose-fork.ts:main',message:'diagnose-fork script started',data:{network:'hardhat'},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const net = await ethers.provider.getNetwork();
   const block = await ethers.provider.getBlockNumber();
   console.log(`\nFork: chainId=${net.chainId} block=${block}\n`);

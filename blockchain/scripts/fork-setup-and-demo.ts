@@ -53,7 +53,9 @@ async function impersonate(addr: string) {
   await (await deployer.sendTransaction({to: addr, value: ethers.parseEther('100')})).wait();
   // Hardhat node requires explicit impersonation; Ganache pre-unlocks addresses via
   // ganache-fork.cjs unlockedAccounts so the call is a no-op there (error silently ignored).
-  try { await (ethers.provider as any).send('hardhat_impersonateAccount', [addr]); } catch {}
+  try {
+    await (ethers.provider as any).send('hardhat_impersonateAccount', [addr]);
+  } catch {}
   return (ethers.provider as any).getSigner(addr);
 }
 async function fundFromWhale(token: string, whale: string, to: string, amount: bigint) {
@@ -266,19 +268,12 @@ async function main() {
   // ── EIP-7702 demo: delegate dev account #5, approve in the same type-4 tx, swap via paymaster ──
   logStep('EIP-7702 demo: delegating dev account #5');
   const DEV_MNEMONIC = 'test test test test test test test test test test test junk';
-  const eoa = ethers.HDNodeWallet.fromPhrase(DEV_MNEMONIC, undefined, "m/44'/60'/0'/0/5").connect(
-    ethers.provider,
-  );
-  const approveCalldata = buildErc7821BatchCalldata(
-    ethers as any,
-    approvalBatchCalls(ethers as any, accountApprovals),
-  );
+  const eoa = ethers.HDNodeWallet.fromPhrase(DEV_MNEMONIC, undefined, "m/44'/60'/0'/0/5").connect(ethers.provider);
+  const approveCalldata = buildErc7821BatchCalldata(ethers as any, approvalBatchCalls(ethers as any, accountApprovals));
   // Self-sent type-4 tx consumes the current nonce; the authorization signs nonce + 1.
   const eoaNonce = await ethers.provider.getTransactionCount(eoa.address);
   const auth = await eoa.authorize({address: eip7702DelegateAddr, nonce: eoaNonce + 1});
-  await (
-    await eoa.sendTransaction({type: 4, to: eoa.address, data: approveCalldata, authorizationList: [auth]})
-  ).wait();
+  await (await eoa.sendTransaction({type: 4, to: eoa.address, data: approveCalldata, authorizationList: [auth]})).wait();
   logStep('EOA delegated + approvals granted in one type-4 tx', eoa.address);
 
   logStep('Funding EIP-7702 account from whale');

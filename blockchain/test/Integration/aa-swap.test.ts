@@ -44,11 +44,16 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
     const accEthBefore = await ethers.provider.getBalance(f.accountAddr);
 
     const callData = buildSwapCallData(f.paraSwapAddr, ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_SWAP_IN);
-    const op = await buildWebAuthnSignedUserOp(ethers as any, f.entryPoint as any, {
-      sender: f.accountAddr,
-      callData,
-      paymaster: f.a7a5PaymasterAddr,
-    }, signUserOpHashWebAuthn);
+    const op = await buildWebAuthnSignedUserOp(
+      ethers as any,
+      f.entryPoint as any,
+      {
+        sender: f.accountAddr,
+        callData,
+        paymaster: f.a7a5PaymasterAddr,
+      },
+      signUserOpHashWebAuthn,
+    );
 
     await (f.entryPoint as any).connect(f.bundler).handleOps([op], f.deployerAddr);
 
@@ -66,11 +71,16 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
     const accEthBefore = await ethers.provider.getBalance(f.accountAddr);
 
     const callData = buildSwapCallData(f.paraSwapAddr, ADDRESSES.USDT, ADDRESSES.A7A5, usdtIn);
-    const op = await buildWebAuthnSignedUserOp(ethers as any, f.entryPoint as any, {
-      sender: f.accountAddr,
-      callData,
-      paymaster: f.usdtPaymasterAddr,
-    }, signUserOpHashWebAuthn);
+    const op = await buildWebAuthnSignedUserOp(
+      ethers as any,
+      f.entryPoint as any,
+      {
+        sender: f.accountAddr,
+        callData,
+        paymaster: f.usdtPaymasterAddr,
+      },
+      signUserOpHashWebAuthn,
+    );
 
     await (f.entryPoint as any).connect(f.bundler).handleOps([op], f.deployerAddr);
 

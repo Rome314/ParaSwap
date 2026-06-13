@@ -12,10 +12,7 @@ import {ADDRESSES} from '../common/addresses.js';
 const conn = await network.create('localhost');
 const {ethers} = conn;
 
-const ERC20 = [
-  'function balanceOf(address) view returns (uint256)',
-  'function transfer(address to, uint256 amount) returns (bool)',
-];
+const ERC20 = ['function balanceOf(address) view returns (uint256)', 'function transfer(address to, uint256 amount) returns (bool)'];
 
 async function impersonate(addr: string) {
   const [deployer] = await ethers.getSigners();
@@ -58,16 +55,12 @@ async function main() {
 
   // Fund A7A5 from whale
   const a7a5Whale = await impersonate(ADDRESSES.A7A5_WHALE);
-  await (
-    await new ethers.Contract(ADDRESSES.A7A5, ERC20, a7a5Whale).transfer(accountAddr, A7A5_AMOUNT)
-  ).wait();
+  await (await new ethers.Contract(ADDRESSES.A7A5, ERC20, a7a5Whale).transfer(accountAddr, A7A5_AMOUNT)).wait();
   console.log(`\n[+] Transferred ${A7A5_AMOUNT} raw A7A5`);
 
   // Fund USDT from whale
   const usdtWhale = await impersonate(ADDRESSES.USDT_WHALE);
-  await (
-    await new ethers.Contract(ADDRESSES.USDT, ERC20, usdtWhale).transfer(accountAddr, USDT_AMOUNT)
-  ).wait();
+  await (await new ethers.Contract(ADDRESSES.USDT, ERC20, usdtWhale).transfer(accountAddr, USDT_AMOUNT)).wait();
   console.log(`[+] Transferred ${USDT_AMOUNT} raw USDT`);
 
   // Fund ETH from deployer

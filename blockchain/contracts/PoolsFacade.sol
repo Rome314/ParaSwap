@@ -142,7 +142,13 @@ contract PoolsFacade is ReentrancyGuard {
         }
 
         require(amountOut >= amountOutMin, "PoolsFacade: insufficient output");
-        emit A7A5Swapped(msg.sender, side, STRATEGY.DIRECT, amountIn, amountOut);
+        emit A7A5Swapped(
+            msg.sender,
+            side,
+            STRATEGY.DIRECT,
+            amountIn,
+            amountOut
+        );
     }
 
     /// @notice Execute a wA7A5 ↔ USDT swap through the Uniswap V3 pool (wA7A5 path, SwapRouter02).

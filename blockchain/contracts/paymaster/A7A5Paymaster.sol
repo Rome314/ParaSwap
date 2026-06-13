@@ -47,7 +47,12 @@ error A7A5Paymaster__ZeroAddress();
  *     without reverting during validation (ERC-7562 friendly). An emergency {pause} short-circuits
  *     validation by returning `SIG_VALIDATION_FAILED`.
  */
-contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable, ITokenPaymaster {
+contract A7A5Paymaster is
+    PaymasterERC20,
+    Ownable2Step,
+    Pausable,
+    ITokenPaymaster
+{
     using ERC4337Utils for PackedUserOperation;
     using SafeERC20 for IERC20;
     using Math for uint256;

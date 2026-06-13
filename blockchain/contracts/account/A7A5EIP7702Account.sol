@@ -34,7 +34,8 @@ contract A7A5EIP7702Account is
     error A7A5EIP7702Account__ZeroAddress();
 
     constructor(IEntryPoint entryPoint_) EIP712("A7A5EIP7702Account", "1") {
-        if (address(entryPoint_) == address(0)) revert A7A5EIP7702Account__ZeroAddress();
+        if (address(entryPoint_) == address(0))
+            revert A7A5EIP7702Account__ZeroAddress();
         _ENTRY_POINT = entryPoint_;
     }
 
@@ -48,6 +49,8 @@ contract A7A5EIP7702Account is
         bytes32 mode,
         bytes calldata executionData
     ) internal view override returns (bool) {
-        return caller == address(entryPoint()) || super._erc7821AuthorizedExecutor(caller, mode, executionData);
+        return
+            caller == address(entryPoint()) ||
+            super._erc7821AuthorizedExecutor(caller, mode, executionData);
     }
 }

@@ -23,20 +23,11 @@ function usdt(provider: any) {
 async function deployUsdtPaymasterStack() {
   const base = await deployPaymasterStackFixture();
 
-  const usdtOracle = await ethers.deployContract('UsdtNativeOracle', [
-    ADDRESSES.CHAINLINK_USDT_ETH,
-    MAX_STALENESS,
-    base.deployerAddr,
-  ]);
+  const usdtOracle = await ethers.deployContract('UsdtNativeOracle', [ADDRESSES.CHAINLINK_USDT_ETH, MAX_STALENESS, base.deployerAddr]);
   await usdtOracle.waitForDeployment();
   const usdtOracleAddr = await usdtOracle.getAddress();
 
-  const usdtPaymaster = await ethers.deployContract('UsdtPaymaster', [
-    ADDRESSES.ENTRYPOINT_V08,
-    ADDRESSES.USDT,
-    usdtOracleAddr,
-    base.deployerAddr,
-  ]);
+  const usdtPaymaster = await ethers.deployContract('UsdtPaymaster', [ADDRESSES.ENTRYPOINT_V08, ADDRESSES.USDT, usdtOracleAddr, base.deployerAddr]);
   await usdtPaymaster.waitForDeployment();
   const usdtPaymasterAddr = await usdtPaymaster.getAddress();
   await (await (usdtPaymaster as any).deposit({value: ethers.parseEther('5')})).wait();
@@ -91,17 +82,16 @@ const run = forkReady(ADDRESSES.USDT, ADDRESSES.CHAINLINK_USDT_ETH, ADDRESSES.EN
 
   describe('Access control', function () {
     it('allows withdrawal by the owner', async function () {
-      const {usdtPaymaster, deployer, ownerAddr, entryPoint, usdtPaymasterAddr} =
-        await loadFixture(deployUsdtPaymasterStack);
+      const {usdtPaymaster, deployer, ownerAddr, entryPoint, usdtPaymasterAddr} = await loadFixture(deployUsdtPaymasterStack);
 
       const WITHDRAW_AMOUNT = ethers.parseEther('1');
       const recipientEthBefore = await ethers.provider.getBalance(ownerAddr);
-      const pmDepositBefore    = await (entryPoint as any).balanceOf(usdtPaymasterAddr);
+      const pmDepositBefore = await (entryPoint as any).balanceOf(usdtPaymasterAddr);
 
       await (await (usdtPaymaster as any).connect(deployer).withdraw(ownerAddr, WITHDRAW_AMOUNT)).wait();
 
       const recipientEthAfter = await ethers.provider.getBalance(ownerAddr);
-      const pmDepositAfter    = await (entryPoint as any).balanceOf(usdtPaymasterAddr);
+      const pmDepositAfter = await (entryPoint as any).balanceOf(usdtPaymasterAddr);
 
       expect(recipientEthAfter - recipientEthBefore).to.equal(WITHDRAW_AMOUNT);
       expect(pmDepositBefore - pmDepositAfter).to.equal(WITHDRAW_AMOUNT);
@@ -109,14 +99,15 @@ const run = forkReady(ADDRESSES.USDT, ADDRESSES.CHAINLINK_USDT_ETH, ADDRESSES.EN
 
     it('only the owner can withdraw the EntryPoint deposit', async function () {
       const {usdtPaymaster, owner, ownerAddr} = await loadFixture(deployUsdtPaymasterStack);
-      await expect((usdtPaymaster as any).connect(owner).withdraw(ownerAddr, 1n))
-        .to.be.revertedWithCustomError(usdtPaymaster, 'OwnableUnauthorizedAccount');
+      await expect((usdtPaymaster as any).connect(owner).withdraw(ownerAddr, 1n)).to.be.revertedWithCustomError(
+        usdtPaymaster,
+        'OwnableUnauthorizedAccount',
+      );
     });
 
     it('only the owner can pause', async function () {
       const {usdtPaymaster, owner} = await loadFixture(deployUsdtPaymasterStack);
-      await expect((usdtPaymaster as any).connect(owner).pause())
-        .to.be.revertedWithCustomError(usdtPaymaster, 'OwnableUnauthorizedAccount');
+      await expect((usdtPaymaster as any).connect(owner).pause()).to.be.revertedWithCustomError(usdtPaymaster, 'OwnableUnauthorizedAccount');
     });
   });
 
@@ -126,10 +117,10 @@ const run = forkReady(ADDRESSES.USDT, ADDRESSES.CHAINLINK_USDT_ETH, ADDRESSES.EN
 
       const a7a5Token = IA7A5__factory.connect(ADDRESSES.A7A5, ethers.provider);
 
-      const accA7A5Before:   bigint = await a7a5Token.balanceOf(f.accountAddr);
-      const accUsdtBefore:   bigint = await usdt(ethers.provider).balanceOf(f.accountAddr);
-      const accEthBefore:    bigint = await ethers.provider.getBalance(f.accountAddr);
-      const pmUsdtBefore:    bigint = await usdt(ethers.provider).balanceOf(f.usdtPaymasterAddr);
+      const accA7A5Before: bigint = await a7a5Token.balanceOf(f.accountAddr);
+      const accUsdtBefore: bigint = await usdt(ethers.provider).balanceOf(f.accountAddr);
+      const accEthBefore: bigint = await ethers.provider.getBalance(f.accountAddr);
+      const pmUsdtBefore: bigint = await usdt(ethers.provider).balanceOf(f.usdtPaymasterAddr);
       const pmDepositBefore: bigint = await (f.entryPoint as any).balanceOf(f.usdtPaymasterAddr);
 
       const op = await buildSignedUserOp(ethers as any, f.entryPoint as any, f.owner as any, {
@@ -139,14 +130,14 @@ const run = forkReady(ADDRESSES.USDT, ADDRESSES.CHAINLINK_USDT_ETH, ADDRESSES.EN
       });
       await (f.entryPoint as any).connect(f.bundler).handleOps([op], f.deployerAddr);
 
-      const accA7A5After:   bigint = await a7a5Token.balanceOf(f.accountAddr);
-      const accUsdtAfter:   bigint = await usdt(ethers.provider).balanceOf(f.accountAddr);
-      const accEthAfter:    bigint = await ethers.provider.getBalance(f.accountAddr);
-      const pmUsdtAfter:    bigint = await usdt(ethers.provider).balanceOf(f.usdtPaymasterAddr);
+      const accA7A5After: bigint = await a7a5Token.balanceOf(f.accountAddr);
+      const accUsdtAfter: bigint = await usdt(ethers.provider).balanceOf(f.accountAddr);
+      const accEthAfter: bigint = await ethers.provider.getBalance(f.accountAddr);
+      const pmUsdtAfter: bigint = await usdt(ethers.provider).balanceOf(f.usdtPaymasterAddr);
       const pmDepositAfter: bigint = await (f.entryPoint as any).balanceOf(f.usdtPaymasterAddr);
 
       const gasInUsdt = pmUsdtAfter - pmUsdtBefore;
-      const gasInEth  = pmDepositBefore - pmDepositAfter;
+      const gasInEth = pmDepositBefore - pmDepositAfter;
 
       console.log('  ── Before ────────────────────────────────────────────');
       console.log(`  Account  A7A5:      ${formatUnits6(accA7A5Before)}`);
@@ -162,7 +153,9 @@ const run = forkReady(ADDRESSES.USDT, ADDRESSES.CHAINLINK_USDT_ETH, ADDRESSES.EN
       console.log(`  Paymaster deposit:  ${ethers.formatEther(pmDepositAfter)} ETH`);
       console.log('  ── Deltas ────────────────────────────────────────────');
       console.log(`  A7A5 received:       +${formatUnits6(accA7A5After - accA7A5Before)}`);
-      console.log(`  USDT lost:           -${formatUnits6(accUsdtBefore - accUsdtAfter)}  (swap=${formatUnits6(USDT_SWAP_IN)} + gas=${formatUnits6(gasInUsdt)})`);
+      console.log(
+        `  USDT lost:           -${formatUnits6(accUsdtBefore - accUsdtAfter)}  (swap=${formatUnits6(USDT_SWAP_IN)} + gas=${formatUnits6(gasInUsdt)})`,
+      );
       console.log(`  Paymaster USDT gain: +${formatUnits6(gasInUsdt)}`);
       console.log(`  Paymaster ETH spent: -${ethers.formatEther(gasInEth)} ETH`);
 
@@ -237,11 +230,7 @@ describe('UsdtPaymaster (unit, no fork)', function () {
     const mockEP = await ethers.deployContract('MockEntryPoint');
     await mockEP.waitForDeployment();
 
-    const oracle = await ethers.deployContract('UsdtNativeOracle', [
-      await feed.getAddress(),
-      5 * 60,
-      await deployer.getAddress(),
-    ]);
+    const oracle = await ethers.deployContract('UsdtNativeOracle', [await feed.getAddress(), 5 * 60, await deployer.getAddress()]);
     await oracle.waitForDeployment();
 
     const paymaster = await ethers.deployContract('UsdtPaymaster', [
@@ -284,11 +273,7 @@ describe('UsdtPaymaster (unit, no fork)', function () {
     const now = (await ethers.provider.getBlock('latest'))!.timestamp;
     const feed = await ethers.deployContract('MockChainlinkFeed', [400_000_000_000_000n, now, 18]);
     await feed.waitForDeployment();
-    const newOracle = await ethers.deployContract('UsdtNativeOracle', [
-      await feed.getAddress(),
-      5 * 60,
-      await deployer.getAddress(),
-    ]);
+    const newOracle = await ethers.deployContract('UsdtNativeOracle', [await feed.getAddress(), 5 * 60, await deployer.getAddress()]);
     await newOracle.waitForDeployment();
 
     const oldAddr = await oracle.getAddress();
@@ -302,8 +287,10 @@ describe('UsdtPaymaster (unit, no fork)', function () {
 
   it('setOracle reverts when new oracle is the zero address', async function () {
     const {deployer, paymaster} = await deployUsdtPaymasterUnit();
-    await expect((paymaster as any).connect(deployer).setOracle(ethers.ZeroAddress))
-      .to.be.revertedWithCustomError(paymaster, 'UsdtPaymaster__ZeroAddress');
+    await expect((paymaster as any).connect(deployer).setOracle(ethers.ZeroAddress)).to.be.revertedWithCustomError(
+      paymaster,
+      'UsdtPaymaster__ZeroAddress',
+    );
   });
 
   it('unpause restores the unpaused state after pause', async function () {

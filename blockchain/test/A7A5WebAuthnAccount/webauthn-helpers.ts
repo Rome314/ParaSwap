@@ -25,11 +25,7 @@ function normalizeLowS(s: bigint): bigint {
 }
 
 function base64Url(data: Uint8Array): string {
-  return Buffer.from(data)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  return Buffer.from(data).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /** Minimal authenticatorData: zero rpIdHash + UP|UV flags + zero counter. */
