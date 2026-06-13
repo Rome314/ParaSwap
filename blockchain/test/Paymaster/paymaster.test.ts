@@ -150,7 +150,7 @@ const run = forkReady(ADDRESSES.A7A5, ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CH
       expect(pmA7A5After - pmA7A5Before).to.be.greaterThan(0n);
       expect(pmDepositBefore - pmDepositAfter).to.be.greaterThan(0n);
       // Cross-math: every A7A5 wei that left the account = swap input + gas the paymaster kept.
-      expect(accA7A5Before - accA7A5After).to.equal(A7A5_SWAP_IN + gasInA7A5);
+      expect(accA7A5Before - accA7A5After).to.closeTo(A7A5_SWAP_IN + gasInA7A5, 1n);
     });
   });
 

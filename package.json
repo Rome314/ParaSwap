@@ -8,6 +8,7 @@
     "subgraph"
   ],
   "scripts": {
+    "postinstall": "node scripts/patch-ethereum-cryptography.cjs",
     "build:contracts": "npm run build -w @para-swap/contracts && npm run build -w para-swap-contracts && npm run build -w @para-swap/contracts",
     "build": "npm run build:contracts && npm run build -w para-swap-frontend",
     "subgraph:sync-abis": "npm run sync-abis -w para-swap-subgraph",
@@ -17,10 +18,5 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.3"
-  },
-  "overrides": {
-    "ethereum-cryptography": {
-      "@noble/hashes": "1.4.0"
-    }
   }
 }
