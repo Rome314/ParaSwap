@@ -76,6 +76,9 @@ function buildSwapCallData(paraSwapAddr: string, tokenIn: string, tokenOut: stri
 }
 
 async function main() {
+  // #region agent log
+  fetch('http://127.0.0.1:7723/ingest/91286a68-cbca-4c42-a1c4-fd2eccc0dee1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'021ce4'},body:JSON.stringify({sessionId:'021ce4',runId:'post-fix',hypothesisId:'C',location:'fork-setup-and-demo.ts:main',message:'fork-setup script reached main()',data:{network:'localhost'},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const net = await ethers.provider.getNetwork();
   const block = await ethers.provider.getBlockNumber();
   console.log(`\nFork setup: chainId=${net.chainId} block=${block}\n`);

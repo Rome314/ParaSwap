@@ -18,5 +18,14 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.3"
+  },
+  "overrides": {
+    "undici": "$undici",
+    "@babel/helper-compilation-targets": {
+      "lru-cache": "5.1.1"
+    }
+  },
+  "dependencies": {
+    "undici": "^6.21.3"
   }
 }

@@ -12,12 +12,12 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\""
   },
   "dependencies": {
-    "@para-swap/contracts": "*",
     "@openzeppelin/adapter-evm": "^2.1.0",
     "@openzeppelin/adapters-vite": "^3.0.0",
     "@openzeppelin/ui-components": "^2.0.0",
     "@openzeppelin/ui-react": "^2.0.1",
     "@openzeppelin/ui-renderer": "^2.0.0",
+    "@openzeppelin/ui-storage": "^1.2.2",
     "@openzeppelin/ui-styles": "^1.1.0",
     "@openzeppelin/ui-types": "^3.1.0",
     "@openzeppelin/ui-utils": "^2.0.0",
@@ -42,6 +42,7 @@
     "wagmi": "^2.12.0"
   },
   "devDependencies": {
+    "@openzeppelin/ui-dev-cli": "^0.6.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.1",
