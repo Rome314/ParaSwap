@@ -1,6 +1,34 @@
 import 'dotenv/config';
 import type {HardhatUserConfig} from 'hardhat/config';
+import type {HardhatPlugin} from 'hardhat/types/plugins';
 import HardhatToolboxMochaEthers from '@nomicfoundation/hardhat-toolbox-mocha-ethers';
+
+// openzeppelin-community-contracts ships a Foundry-style remappings.txt that maps
+// @openzeppelin/contracts/ → lib/@openzeppelin-contracts/contracts/ (a path that only
+// exists in a Foundry workspace). Hardhat 3 reads that file and breaks npm resolution.
+// This inline plugin intercepts the hook and strips the Foundry-only remappings so
+// Hardhat falls back to resolving @openzeppelin/contracts via npm as normal.
+const ozCommunityRemappingFix: HardhatPlugin = {
+  id: 'oz-community-remapping-fix',
+  hookHandlers: {
+    solidity: async () => ({
+      default: async () => ({
+        readNpmPackageRemappings: async (ctx, name, version, pkgPath, next) => {
+          const sources = await next(ctx, name, version, pkgPath);
+          if (name.includes('community-contracts')) {
+            return sources.map(s => ({
+              ...s,
+              remappings: s.remappings.filter(
+                r => !r.startsWith('@openzeppelin/contracts/=lib/'),
+              ),
+            }));
+          }
+          return sources;
+        },
+      }),
+    }),
+  },
+};
 
 // Accept either an explicit full URL or just the API key (derive the mainnet URL).
 // Blank env placeholders (`ALCHEMY_RPC_URL=`) must not block API-key fallback — use `||`, not `??`.
@@ -13,7 +41,7 @@ const SEPOLIA_URL = process.env.SEPOLIA_RPC_URL?.trim() || (ALCHEMY_KEY ? `https
 const FORK_BLOCK = process.env.FORK_BLOCK ? Number(process.env.FORK_BLOCK) : undefined;
 
 const config: HardhatUserConfig = {
-  plugins: [HardhatToolboxMochaEthers],
+  plugins: [ozCommunityRemappingFix, HardhatToolboxMochaEthers],
   solidity: {
     compilers: [
       {version: '0.8.22', settings: {optimizer: {enabled: true, runs: 200}}},
