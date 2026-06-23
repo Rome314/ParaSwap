@@ -28,11 +28,12 @@ export async function deployAAStackFixture() {
     ADDRESSES.SWAP_ROUTER_02,
     ADDRESSES.QUOTER_V2,
     ADDRESSES.V3_FEE_TIER,
+    deployerAddr,
   ]);
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();
 
-  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02]);
+  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02, deployerAddr]);
   await paraSwap.waitForDeployment();
   const paraSwapAddr = await paraSwap.getAddress();
 
@@ -174,7 +175,7 @@ async function warmUpTwap(deployer: any, facade: any, facadeAddr: string, deploy
   await (await (usdt as any).approve(facadeAddr, USDT_POKE * 10n)).wait();
 
   for (let i = 0; i < 3; i++) {
-    await conn.networkHelpers.time.increase(45);
+    await conn.networkHelpers.time.increase(110);
     await (await facade.connect(deployer).swapWA7A5(USDT_POKE, SIDE.BUY, 0n, FAR_DEADLINE)).wait();
   }
   await conn.networkHelpers.time.increase(5);

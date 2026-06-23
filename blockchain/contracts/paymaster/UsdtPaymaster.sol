@@ -7,14 +7,8 @@ import {
     IEntryPoint,
     PackedUserOperation
 } from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
-import {
-    IERC20,
-    SafeERC20
-} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {
-    Ownable2Step,
-    Ownable
-} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 import {UsdtNativeOracle} from "../oracle/UsdtNativeOracle.sol";
@@ -26,12 +20,7 @@ error UsdtPaymaster__ZeroAddress();
  * @title UsdtPaymaster
  * @notice ERC-4337 paymaster that accepts USDT for gas (standard ERC-20, no FOT gross-up).
  */
-contract UsdtPaymaster is
-    PaymasterERC20,
-    Ownable2Step,
-    Pausable,
-    ITokenPaymaster
-{
+contract UsdtPaymaster is PaymasterERC20, Ownable2Step, Pausable, ITokenPaymaster {
     using ERC4337Utils for PackedUserOperation;
     using SafeERC20 for IERC20;
 
@@ -70,8 +59,7 @@ contract UsdtPaymaster is
     }
 
     function setOracle(UsdtNativeOracle newOracle) external onlyOwner {
-        if (address(newOracle) == address(0))
-            revert UsdtPaymaster__ZeroAddress();
+        if (address(newOracle) == address(0)) revert UsdtPaymaster__ZeroAddress();
         emit OracleUpdated(address(_oracle), address(newOracle));
         _oracle = newOracle;
     }
@@ -93,12 +81,7 @@ contract UsdtPaymaster is
     function _fetchDetails(
         PackedUserOperation calldata /* userOp */,
         bytes32 /* userOpHash */
-    )
-        internal
-        view
-        override
-        returns (uint256 validationData, IERC20 token, uint256 tokenPrice)
-    {
+    ) internal view override returns (uint256 validationData, IERC20 token, uint256 tokenPrice) {
         token = USDT;
         if (paused()) {
             return (ERC4337Utils.SIG_VALIDATION_FAILED, token, 0);

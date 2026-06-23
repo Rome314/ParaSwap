@@ -48,8 +48,7 @@ contract A7A5WebAuthnAccount is
             0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5
         )
     {
-        if (address(entryPoint_) == address(0))
-            revert A7A5WebAuthnAccount__ZeroAddress();
+        if (address(entryPoint_) == address(0)) revert A7A5WebAuthnAccount__ZeroAddress();
         _ENTRY_POINT = entryPoint_;
     }
 
@@ -62,14 +61,9 @@ contract A7A5WebAuthnAccount is
      * run exactly once, immediately after {initializeWebAuthn} — {A7A5AccountFactory} always calls
      * it (even with an empty list) so the slot is never left open for a third party.
      */
-    function initializeApprovals(
-        TokenApproval[] calldata approvals
-    ) external reinitializer(2) {
+    function initializeApprovals(TokenApproval[] calldata approvals) external reinitializer(2) {
         for (uint256 i; i < approvals.length; ++i) {
-            IERC20(approvals[i].token).forceApprove(
-                approvals[i].spender,
-                approvals[i].amount
-            );
+            IERC20(approvals[i].token).forceApprove(approvals[i].spender, approvals[i].amount);
         }
     }
 

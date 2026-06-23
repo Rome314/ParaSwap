@@ -10,7 +10,7 @@ const DECIMALS_6 = 6;
 const DECIMALS_8 = 8;
 const DECIMALS_18 = 18;
 const MIN_MAX_STALENESS = 5 * 60; // 5 minutes in seconds
-const MIN_TWAP_WINDOW = 60; // seconds
+const MIN_TWAP_WINDOW = 300; // seconds (matches A7A5UsdtTwapOracle.MIN_TWAP_WINDOW)
 
 // ── factory helpers ───────────────────────────────────────────────────────────
 

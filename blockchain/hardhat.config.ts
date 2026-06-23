@@ -16,11 +16,9 @@ const ozCommunityRemappingFix: HardhatPlugin = {
         readNpmPackageRemappings: async (ctx, name, version, pkgPath, next) => {
           const sources = await next(ctx, name, version, pkgPath);
           if (name.includes('community-contracts')) {
-            return sources.map(s => ({
+            return sources.map((s) => ({
               ...s,
-              remappings: s.remappings.filter(
-                r => !r.startsWith('@openzeppelin/contracts/=lib/'),
-              ),
+              remappings: s.remappings.filter((r) => !r.startsWith('@openzeppelin/contracts/=lib/')),
             }));
           }
           return sources;

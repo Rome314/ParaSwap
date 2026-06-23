@@ -11,6 +11,7 @@ import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 
 error A7A5UsdtV2Oracle__PairMismatch();
 error A7A5UsdtV2Oracle__EmptyReserves();
+error A7A5UsdtV2Oracle__InsufficientLiquidity();
 error A7A5UsdtV2Oracle__NoHistoricalData();
 
 /**
@@ -41,12 +42,15 @@ contract A7A5UsdtV2Oracle is AggregatorV3Interface {
     uint256 public immutable A7A5_SCALE; // 10**a7a5.decimals()
     uint256 public immutable USDT_SCALE; // 10**usdt.decimals()
 
+    /// @notice Minimum A7A5 reserve required to return a price; prevents manipulation via thin liquidity.
+    uint256 public immutable MIN_RESERVE_A7A5;
+
     /**
      * @param pair  Uniswap V2 A7A5/USDT pair.
      * @param a7a5  A7A5 token address (one of the pair's two tokens).
      * @param usdt  USDT token address (the other pair token).
      */
-    constructor(IUniswapV2Pair pair, address a7a5, address usdt) {
+    constructor(IUniswapV2Pair pair, address a7a5, address usdt, uint256 minReserveA7A5_) {
         address t0 = pair.token0();
         address t1 = pair.token1();
         if (!((t0 == a7a5 && t1 == usdt) || (t0 == usdt && t1 == a7a5))) {
@@ -59,6 +63,7 @@ contract A7A5UsdtV2Oracle is AggregatorV3Interface {
         A7A5_IS_TOKEN0 = t0 == a7a5;
         A7A5_SCALE = 10 ** IERC20Metadata(a7a5).decimals();
         USDT_SCALE = 10 ** IERC20Metadata(usdt).decimals();
+        MIN_RESERVE_A7A5 = minReserveA7A5_;
     }
 
     // ── Pricing ─────────────────────────────────────────────────────────────────
@@ -71,7 +76,7 @@ contract A7A5UsdtV2Oracle is AggregatorV3Interface {
             ? (uint256(reserve0), uint256(reserve1))
             : (uint256(reserve1), uint256(reserve0));
 
-        if (reserveA7A5 == 0) revert A7A5UsdtV2Oracle__EmptyReserves();
+        if (reserveA7A5 < MIN_RESERVE_A7A5) revert A7A5UsdtV2Oracle__InsufficientLiquidity();
 
         // USDT/A7A5 (8 dec) = (reserveUSDT / USDT_SCALE) / (reserveA7A5 / A7A5_SCALE) * 1e8
         //                   = reserveUSDT * A7A5_SCALE * 1e8 / (reserveA7A5 * USDT_SCALE)
@@ -97,9 +102,7 @@ contract A7A5UsdtV2Oracle is AggregatorV3Interface {
     }
 
     /// @dev V2 spot price has no history; only "latest" is meaningful.
-    function getRoundData(
-        uint80
-    ) external pure returns (uint80, int256, uint256, uint256, uint80) {
+    function getRoundData(uint80) external pure returns (uint80, int256, uint256, uint256, uint80) {
         revert A7A5UsdtV2Oracle__NoHistoricalData();
     }
 
@@ -115,12 +118,6 @@ contract A7A5UsdtV2Oracle is AggregatorV3Interface {
         )
     {
         uint80 round = uint80(block.timestamp);
-        return (
-            round,
-            int256(latestAnswer()),
-            block.timestamp,
-            block.timestamp,
-            round
-        );
+        return (round, int256(latestAnswer()), block.timestamp, block.timestamp, round);
     }
 }

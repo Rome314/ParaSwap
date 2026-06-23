@@ -9,7 +9,7 @@ import {A7A5_IN, conn, ethers, networkHelpers, USDT_IN, WA7A5_IN} from './consts
 import {findBpsSlot, tokens} from './helpers.js';
 
 export async function deployFacadeFixture() {
-  const [, trader] = await ethers.getSigners();
+  const [deployer, trader] = await ethers.getSigners();
   const traderAddr = await trader.getAddress();
   const facade = (await ethers.deployContract('PoolsFacade', [
     ADDRESSES.WA7A5,
@@ -19,6 +19,7 @@ export async function deployFacadeFixture() {
     ADDRESSES.SWAP_ROUTER_02,
     ADDRESSES.QUOTER_V2,
     ADDRESSES.V3_FEE_TIER,
+    await deployer.getAddress(),
   ])) as unknown as PoolsFacade;
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();

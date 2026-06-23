@@ -13,7 +13,7 @@
   "SepoliaOracleStack": {
     "modulePath": "./ignition/modules/SepoliaOracleStack.ts",
     "parameters": {
-      "twapWindow": "60",
+      "twapWindow": "300",
       "maxStaleness": "172800",
       "twapCumulativeOlder": "-276324",
       "twapCumulativeNewer": "0"

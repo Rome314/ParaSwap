@@ -5,7 +5,7 @@ const DEFAULT_MAX_STALENESS = 2 * 24 * 60 * 60;
 
 export default buildModule('SepoliaOracleStack', (m) => {
   const owner = m.getAccount(0);
-  const twapWindow = m.getParameter('twapWindow', 60);
+  const twapWindow = m.getParameter('twapWindow', 300);
   const maxStaleness = m.getParameter('maxStaleness', String(DEFAULT_MAX_STALENESS));
   const twapCumulativeOlder = m.getParameter('twapCumulativeOlder', '-276324');
   const twapCumulativeNewer = m.getParameter('twapCumulativeNewer', '0');

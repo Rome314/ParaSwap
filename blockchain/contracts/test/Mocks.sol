@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {
-    IAccount,
-    PackedUserOperation
-} from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
+import {IAccount, PackedUserOperation} from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // ── Mock Chainlink AggregatorV3Interface ─────────────────────────────────────
@@ -37,17 +34,11 @@ contract MockChainlinkFeed {
         return 1;
     }
 
-    function getRoundData(
-        uint80
-    ) external view returns (uint80, int256, uint256, uint256, uint80) {
+    function getRoundData(uint80) external view returns (uint80, int256, uint256, uint256, uint80) {
         return (1, answer, block.timestamp, updatedAt, 1);
     }
 
-    function latestRoundData()
-        external
-        view
-        returns (uint80, int256, uint256, uint256, uint80)
-    {
+    function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80) {
         return (1, answer, block.timestamp, updatedAt, 1);
     }
 }
@@ -94,11 +85,7 @@ contract MockWA7A5 {
     function approve(address, uint256) external pure returns (bool) {
         return true;
     }
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) external pure returns (bool) {
+    function transferFrom(address, address, uint256) external pure returns (bool) {
         return true;
     }
 }
@@ -152,11 +139,7 @@ contract MockPool {
     }
 
     // Stubs required by IUniswapV3PoolOracle.
-    function slot0()
-        external
-        pure
-        returns (uint160, int24, uint16, uint16, uint16, uint8, bool)
-    {
+    function slot0() external pure returns (uint160, int24, uint16, uint16, uint16, uint8, bool) {
         return (0, 0, 0, 0, 0, 0, true);
     }
     function increaseObservationCardinalityNext(uint16) external {}

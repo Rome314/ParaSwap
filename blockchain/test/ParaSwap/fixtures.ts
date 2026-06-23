@@ -33,6 +33,9 @@ export async function deployParaSwapFixture() {
   const [, trader] = await ethers.getSigners();
   const traderAddr = await trader.getAddress();
 
+  const [deployer] = await ethers.getSigners();
+  const deployerAddr = await deployer.getAddress();
+
   const facade = (await ethers.deployContract('PoolsFacade', [
     ADDRESSES.WA7A5,
     ADDRESSES.A7A5,
@@ -41,11 +44,12 @@ export async function deployParaSwapFixture() {
     ADDRESSES.SWAP_ROUTER_02,
     ADDRESSES.QUOTER_V2,
     ADDRESSES.V3_FEE_TIER,
+    deployerAddr,
   ])) as unknown as PoolsFacade;
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();
 
-  const paraSwap = (await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02])) as unknown as ParaSwap;
+  const paraSwap = (await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02, deployerAddr])) as unknown as ParaSwap;
   await paraSwap.waitForDeployment();
   const paraSwapAddr = await paraSwap.getAddress();
 

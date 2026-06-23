@@ -26,11 +26,12 @@ export async function deployPaymasterStackFixture() {
     ADDRESSES.SWAP_ROUTER_02,
     ADDRESSES.QUOTER_V2,
     ADDRESSES.V3_FEE_TIER,
+    deployerAddr,
   ]);
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();
 
-  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02]);
+  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02, deployerAddr]);
   await paraSwap.waitForDeployment();
   const paraSwapAddr = await paraSwap.getAddress();
 
@@ -113,9 +114,9 @@ async function warmUpTwap(deployer: any, facade: any, facadeAddr: string, deploy
   const usdt = IA7A5__factory.connect(ADDRESSES.USDT, deployer);
   await (await (usdt as any).approve(facadeAddr, USDT_POKE * 10n)).wait();
 
-  // Each swap in a fresh block writes one observation; space them past the TWAP window.
+  // Each swap in a fresh block writes one observation; space them past the TWAP window (300s).
   for (let i = 0; i < 3; i++) {
-    await networkHelpers.time.increase(45);
+    await networkHelpers.time.increase(110);
     await (await facade.connect(deployer).swapWA7A5(USDT_POKE, SIDE.BUY, 0n, FAR_DEADLINE)).wait();
   }
   await networkHelpers.time.increase(5);

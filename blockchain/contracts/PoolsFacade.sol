@@ -5,6 +5,8 @@ pragma solidity 0.8.22;
 
 import {IQuoterV2} from "@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 interface ISwapRouter02 {
     struct ExactInputSingleParams {
@@ -41,19 +43,15 @@ event A7A5Swapped(
     uint256 amountOut
 );
 
-event WA7A5Swapped(
-    address indexed user,
-    SIDE side,
-    uint256 amountIn,
-    uint256 amountOut
-);
+event WA7A5Swapped(address indexed user, SIDE side, uint256 amountIn, uint256 amountOut);
 
-contract PoolsFacade is ReentrancyGuard {
+error PoolsFacade__InvalidV2Pair();
+
+contract PoolsFacade is ReentrancyGuard, Ownable2Step, Pausable {
     // ── Immutables: tokens ─────────────────────────────────────────────────────
     IWA7A5 public immutable WA7A5;
     IA7A5 public immutable A7A5;
     IERC20 public immutable USDT;
-    address public immutable deployer;
 
     // ── Immutables: V2 ────────────────────────────────────────────────────────
     IUniswapV2Pair public immutable v2Pair; // A7A5/USDT V2 pair
@@ -71,13 +69,11 @@ contract PoolsFacade is ReentrancyGuard {
         IUniswapV2Pair _v2Pair,
         ISwapRouter02 _v3Router,
         IQuoterV2 _v3Quoter,
-        uint24 _wa7a5UsdtV3Fee
-    ) {
-        // Validate before assigning so we can use the constructor args directly
-        require(
-            _validV2Pair(_v2Pair, address(_a7A5Token), address(_usdt)),
-            "PoolsFacade: invalid V2 pair"
-        );
+        uint24 _wa7a5UsdtV3Fee,
+        address owner_
+    ) Ownable(owner_) {
+        if (!_validV2Pair(_v2Pair, address(_a7A5Token), address(_usdt)))
+            revert PoolsFacade__InvalidV2Pair();
 
         WA7A5 = _wA7A5Token;
         A7A5 = _a7A5Token;
@@ -86,10 +82,18 @@ contract PoolsFacade is ReentrancyGuard {
         v3Router = _v3Router;
         v3Quoter = _v3Quoter;
         wa7a5UsdtV3Fee = _wa7a5UsdtV3Fee;
-        deployer = msg.sender;
 
         // Determine A7A5's slot after the immutables are written
         v2A7A5IsToken0 = (_v2Pair.token0() == address(_a7A5Token));
+    }
+
+    // ── Admin ─────────────────────────────────────────────────────────────────
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /// @notice Execute a direct A7A5 ↔ USDT swap through the Uniswap V2 pair (A7A5 path).
@@ -123,17 +127,13 @@ contract PoolsFacade is ReentrancyGuard {
         SIDE side,
         uint256 amountOutMin,
         uint256 deadline
-    ) public nonReentrant returns (uint256 amountOut) {
+    ) public nonReentrant whenNotPaused returns (uint256 amountOut) {
         require(amountIn > 0, "PoolsFacade: zero amountIn");
         require(block.timestamp <= deadline, "PoolsFacade: expired");
 
         // ── Allowance check: fail early with a clear message ──────────────────
         // BUY path pulls USDT; SELL path pulls A7A5.
-        _requireAllowance(
-            side == SIDE.SELL ? address(A7A5) : address(USDT),
-            msg.sender,
-            amountIn
-        );
+        _requireAllowance(side == SIDE.SELL ? address(A7A5) : address(USDT), msg.sender, amountIn);
 
         if (side == SIDE.SELL) {
             amountOut = _v2Sell(amountIn);
@@ -142,13 +142,7 @@ contract PoolsFacade is ReentrancyGuard {
         }
 
         require(amountOut >= amountOutMin, "PoolsFacade: insufficient output");
-        emit A7A5Swapped(
-            msg.sender,
-            side,
-            STRATEGY.DIRECT,
-            amountIn,
-            amountOut
-        );
+        emit A7A5Swapped(msg.sender, side, STRATEGY.DIRECT, amountIn, amountOut);
     }
 
     /// @notice Execute a wA7A5 ↔ USDT swap through the Uniswap V3 pool (wA7A5 path, SwapRouter02).
@@ -169,7 +163,7 @@ contract PoolsFacade is ReentrancyGuard {
         SIDE side,
         uint256 amountOutMin,
         uint256 deadline
-    ) public nonReentrant returns (uint256 amountOut) {
+    ) public nonReentrant whenNotPaused returns (uint256 amountOut) {
         require(amountIn > 0, "PoolsFacade: zero amountIn");
         require(block.timestamp <= deadline, "PoolsFacade: expired");
 
@@ -177,12 +171,7 @@ contract PoolsFacade is ReentrancyGuard {
 
         _requireAllowance(tokenIn, msg.sender, amountIn);
         _safeTransferFrom(tokenIn, msg.sender, address(this), amountIn);
-        amountOut = _executeV3WA7A5Swap(
-            amountIn,
-            side,
-            amountOutMin,
-            msg.sender
-        );
+        amountOut = _executeV3WA7A5Swap(amountIn, side, amountOutMin, msg.sender);
         emit WA7A5Swapped(msg.sender, side, amountIn, amountOut);
     }
 
@@ -211,14 +200,10 @@ contract PoolsFacade is ReentrancyGuard {
         SIDE side,
         uint256 amountOutMin,
         uint256 deadline
-    ) public nonReentrant returns (uint256 amountOut) {
+    ) public nonReentrant whenNotPaused returns (uint256 amountOut) {
         require(amountIn > 0, "PoolsFacade: zero amountIn");
         require(block.timestamp <= deadline, "PoolsFacade: expired");
-        _requireAllowance(
-            side == SIDE.SELL ? address(A7A5) : address(USDT),
-            msg.sender,
-            amountIn
-        );
+        _requireAllowance(side == SIDE.SELL ? address(A7A5) : address(USDT), msg.sender, amountIn);
 
         (, STRATEGY strategy) = getBestQuoteA7A5PerUSDT(amountIn, side);
 
@@ -234,12 +219,7 @@ contract PoolsFacade is ReentrancyGuard {
         } else if (side == SIDE.BUY) {
             // USDT → wA7A5 via V3 (recipient = facade), then unwrap → A7A5 to caller.
             // Two FOT hits: (1) WA7A5 → facade on unwrap, (2) facade → caller on transfer.
-            _safeTransferFrom(
-                address(USDT),
-                msg.sender,
-                address(this),
-                amountIn
-            );
+            _safeTransferFrom(address(USDT), msg.sender, address(this), amountIn);
             _safeApprove(address(USDT), address(v3Router), amountIn);
             uint256 wa7a5Out = v3Router.exactInputSingle(
                 ISwapRouter02.ExactInputSingleParams({
@@ -255,8 +235,7 @@ contract PoolsFacade is ReentrancyGuard {
             _safeApprove(address(USDT), address(v3Router), 0);
             uint256 facadeA7A5Before = A7A5.balanceOf(address(this));
             WA7A5.unwrap(wa7a5Out);
-            uint256 facadeA7A5Received =
-                A7A5.balanceOf(address(this)) - facadeA7A5Before;
+            uint256 facadeA7A5Received = A7A5.balanceOf(address(this)) - facadeA7A5Before;
             uint256 callerA7A5Before = A7A5.balanceOf(msg.sender);
             _safeTransfer(address(A7A5), msg.sender, facadeA7A5Received);
             amountOut = A7A5.balanceOf(msg.sender) - callerA7A5Before;
@@ -264,14 +243,8 @@ contract PoolsFacade is ReentrancyGuard {
             // SELL MIXED: A7A5 from caller → wrap at facade → wA7A5 → V3 → USDT to caller.
             // Two FOT hits: (1) caller → facade, (2) facade → WA7A5 inside wrap().
             uint256 facadeA7A5Before = A7A5.balanceOf(address(this));
-            _safeTransferFrom(
-                address(A7A5),
-                msg.sender,
-                address(this),
-                amountIn
-            );
-            uint256 effectiveA7A5 =
-                A7A5.balanceOf(address(this)) - facadeA7A5Before;
+            _safeTransferFrom(address(A7A5), msg.sender, address(this), amountIn);
+            uint256 effectiveA7A5 = A7A5.balanceOf(address(this)) - facadeA7A5Before;
             _safeApprove(address(A7A5), address(WA7A5), effectiveA7A5);
             uint256 wa7a5Amount = WA7A5.wrap(effectiveA7A5);
             _safeApprove(address(A7A5), address(WA7A5), 0);
@@ -363,10 +336,7 @@ contract PoolsFacade is ReentrancyGuard {
     /// @param amountIn Raw token amount (USDT for BUY, A7A5 for SELL).
     /// @param side     Direction of the hypothetical trade.
     /// @return amountOut  Simulated output amount for the given direction.
-    function quoteA7A5PerUSDT(
-        uint256 amountIn,
-        SIDE side
-    ) public view returns (uint256 amountOut) {
+    function quoteA7A5PerUSDT(uint256 amountIn, SIDE side) public view returns (uint256 amountOut) {
         uint112 rIn;
         uint112 rOut;
         (rIn, rOut) = _getV2ReserveInReserveOut(side);
@@ -390,10 +360,7 @@ contract PoolsFacade is ReentrancyGuard {
     /// @param amountIn    Token amount in.
     /// @param side        BUY or SELL direction.
     /// @return amountOut  Simulated output amount.
-    function quoteWA7A5PerUSDT(
-        uint256 amountIn,
-        SIDE side
-    ) public returns (uint256 amountOut) {
+    function quoteWA7A5PerUSDT(uint256 amountIn, SIDE side) public returns (uint256 amountOut) {
         address tokenIn;
         address tokenOut;
         if (side == SIDE.BUY) {
@@ -444,9 +411,7 @@ contract PoolsFacade is ReentrancyGuard {
     ///         measurements instead of this analytic estimate.
     /// @param amountIn Gross A7A5 amount before the fee.
     /// @return effectiveOut Net A7A5 the recipient actually receives.
-    function getA7A5EffectiveOutput(
-        uint256 amountIn
-    ) public view returns (uint256 effectiveOut) {
+    function getA7A5EffectiveOutput(uint256 amountIn) public view returns (uint256 effectiveOut) {
         uint256 bps = A7A5.basisPointsRate();
         uint256 precision = A7A5.FEE_PRECISION();
         effectiveOut = (amountIn * (precision - bps)) / precision;
@@ -552,11 +517,7 @@ contract PoolsFacade is ReentrancyGuard {
     /// @dev Reverts with a clear message when `owner` has not approved at least
     ///      `amount` of `token` to this contract.  Called before every
     ///      _safeTransferFrom so failures surface before any state is touched.
-    function _requireAllowance(
-        address token,
-        address owner,
-        uint256 amount
-    ) private view {
+    function _requireAllowance(address token, address owner, uint256 amount) private view {
         require(
             IERC20(token).allowance(owner, address(this)) >= amount,
             "PoolsFacade: insufficient allowance"
@@ -571,9 +532,7 @@ contract PoolsFacade is ReentrancyGuard {
     ) internal pure returns (uint256) {
         require(reserveIn > 0 && reserveOut > 0, "PoolsFacade: empty reserves");
         uint256 amountInWithFee = amountIn * 997;
-        return
-            (amountInWithFee * reserveOut) /
-            (reserveIn * 1000 + amountInWithFee);
+        return (amountInWithFee * reserveOut) / (reserveIn * 1000 + amountInWithFee);
     }
 
     function _validV2Pair(
@@ -617,19 +576,9 @@ contract PoolsFacade is ReentrancyGuard {
         );
     }
 
-    function _safeTransferFrom(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    ) internal {
+    function _safeTransferFrom(address token, address from, address to, uint256 amount) internal {
         (bool ok, bytes memory data) = token.call(
-            abi.encodeWithSelector(
-                IERC20.transferFrom.selector,
-                from,
-                to,
-                amount
-            )
+            abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount)
         );
         require(
             ok && (data.length == 0 || abi.decode(data, (bool))),
@@ -637,11 +586,7 @@ contract PoolsFacade is ReentrancyGuard {
         );
     }
 
-    function _safeApprove(
-        address token,
-        address spender,
-        uint256 amount
-    ) internal {
+    function _safeApprove(address token, address spender, uint256 amount) internal {
         (bool ok, bytes memory data) = token.call(
             abi.encodeWithSelector(IERC20.approve.selector, spender, amount)
         );

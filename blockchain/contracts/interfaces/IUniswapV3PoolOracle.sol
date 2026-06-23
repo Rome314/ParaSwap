@@ -29,9 +29,7 @@ interface IUniswapV3PoolOracle {
         );
 
     /// @notice Increase the number of stored observations the pool will keep.
-    function increaseObservationCardinalityNext(
-        uint16 observationCardinalityNext
-    ) external;
+    function increaseObservationCardinalityNext(uint16 observationCardinalityNext) external;
 
     function token0() external view returns (address);
 

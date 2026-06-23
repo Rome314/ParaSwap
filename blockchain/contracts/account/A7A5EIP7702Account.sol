@@ -34,8 +34,7 @@ contract A7A5EIP7702Account is
     error A7A5EIP7702Account__ZeroAddress();
 
     constructor(IEntryPoint entryPoint_) EIP712("A7A5EIP7702Account", "1") {
-        if (address(entryPoint_) == address(0))
-            revert A7A5EIP7702Account__ZeroAddress();
+        if (address(entryPoint_) == address(0)) revert A7A5EIP7702Account__ZeroAddress();
         _ENTRY_POINT = entryPoint_;
     }
 

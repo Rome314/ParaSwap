@@ -1,6 +1,15 @@
 {
   "OracleStack": {
-    "modulePath": "./ignition/modules/OracleStack.ts"
+    "modulePath": "./ignition/modules/OracleStack.ts",
+    "parameters": {
+      "minReserveA7A5": "1000000000"
+    }
+  },
+  "SwapStack": {
+    "modulePath": "./ignition/modules/SwapStack.ts",
+    "parameters": {
+      "swapOwner": "<MULTISIG_ADDRESS>"
+    }
   },
   "Paymasters": {
     "modulePath": "./ignition/modules/Paymasters.ts",

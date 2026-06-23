@@ -11,11 +11,7 @@ interface IA7A5 is IERC20 {
 interface IWA7A5 is IERC20 {
     function wrap(uint256 _A7A5Amount) external returns (uint256);
     function unwrap(uint256 _wA7A5Amount) external returns (uint256);
-    function getwA7A5ByA7A5(
-        uint256 _A7A5Amount
-    ) external view returns (uint256);
-    function getA7A5BywA7A5(
-        uint256 _wA7A5Amount
-    ) external view returns (uint256);
+    function getwA7A5ByA7A5(uint256 _A7A5Amount) external view returns (uint256);
+    function getA7A5BywA7A5(uint256 _wA7A5Amount) external view returns (uint256);
     function A7A5() external view returns (address);
 }

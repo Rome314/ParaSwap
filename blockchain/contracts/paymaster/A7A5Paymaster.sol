@@ -7,14 +7,8 @@ import {
     IEntryPoint,
     PackedUserOperation
 } from "@openzeppelin/contracts/interfaces/draft-IERC4337.sol";
-import {
-    IERC20,
-    SafeERC20
-} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {
-    Ownable2Step,
-    Ownable
-} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -47,12 +41,7 @@ error A7A5Paymaster__ZeroAddress();
  *     without reverting during validation (ERC-7562 friendly). An emergency {pause} short-circuits
  *     validation by returning `SIG_VALIDATION_FAILED`.
  */
-contract A7A5Paymaster is
-    PaymasterERC20,
-    Ownable2Step,
-    Pausable,
-    ITokenPaymaster
-{
+contract A7A5Paymaster is PaymasterERC20, Ownable2Step, Pausable, ITokenPaymaster {
     using ERC4337Utils for PackedUserOperation;
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -103,8 +92,7 @@ contract A7A5Paymaster is
 
     /// @notice Point the paymaster at a new price oracle. Owner-only.
     function setOracle(A7A5NativeOracle newOracle) external onlyOwner {
-        if (address(newOracle) == address(0))
-            revert A7A5Paymaster__ZeroAddress();
+        if (address(newOracle) == address(0)) revert A7A5Paymaster__ZeroAddress();
         emit OracleUpdated(address(_oracle), address(newOracle));
         _oracle = newOracle;
     }
@@ -133,12 +121,7 @@ contract A7A5Paymaster is
     function _fetchDetails(
         PackedUserOperation calldata /* userOp */,
         bytes32 /* userOpHash */
-    )
-        internal
-        view
-        override
-        returns (uint256 validationData, IERC20 token, uint256 tokenPrice)
-    {
+    ) internal view override returns (uint256 validationData, IERC20 token, uint256 tokenPrice) {
         token = IERC20(address(A7A5));
         if (paused()) {
             return (ERC4337Utils.SIG_VALIDATION_FAILED, token, 0);

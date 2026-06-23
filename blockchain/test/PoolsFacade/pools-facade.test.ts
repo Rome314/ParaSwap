@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {ADDRESSES} from '../../common/addresses.js';
 import {forkReady} from '../helpers.js';
-import {readV2Reserves, revertMsg} from './helpers.js';
+import {readV2Reserves} from './helpers.js';
 import {ethers, loadFixture, provider} from './consts.js';
 import {buyFixture, deployFacadeFixture, fotFixture, sellFixture, v3SellFixture} from './fixtures.js';
 
@@ -28,25 +28,22 @@ describe('PoolsFacade (mainnet fork)', function () {
 
   // ── basic ──────────────────────────────────────────────────────────────
   describe('basic', function () {
-    it("constructor: reverts with 'PoolsFacade: invalid V2 pair' when pair tokens mismatch", async () => {
+    it('constructor: reverts with PoolsFacade__InvalidV2Pair when pair tokens mismatch', async () => {
       console.log('\n  ── Constructor: invalid pair ──────────────────────────');
-      const msg = await revertMsg(
-        (async () => {
-          const bad = await ethers.deployContract('PoolsFacade', [
-            ADDRESSES.WA7A5,
-            ADDRESSES.WETH,
-            ADDRESSES.USDT,
-            ADDRESSES.V2_PAIR_USDT_A7A5,
-            ADDRESSES.SWAP_ROUTER_02,
-            ADDRESSES.QUOTER_V2,
-            ADDRESSES.V3_FEE_TIER,
-          ]);
-          await bad.waitForDeployment();
-        })(),
-      );
-      console.log(`        revert msg: ${msg.slice(0, 80)}`);
-      expect(msg.length, 'expected constructor revert').to.be.greaterThan(0);
-      expect(msg).to.contain('invalid V2 pair');
+      const [deployer] = await ethers.getSigners();
+      const deployerAddr = await deployer.getAddress();
+      await expect(
+        ethers.deployContract('PoolsFacade', [
+          ADDRESSES.WA7A5,
+          ADDRESSES.WETH,
+          ADDRESSES.USDT,
+          ADDRESSES.V2_PAIR_USDT_A7A5,
+          ADDRESSES.SWAP_ROUTER_02,
+          ADDRESSES.QUOTER_V2,
+          ADDRESSES.V3_FEE_TIER,
+          deployerAddr,
+        ]),
+      ).to.be.revertedWithCustomError({interface: (await ethers.getContractFactory('PoolsFacade')).interface} as any, 'PoolsFacade__InvalidV2Pair');
     });
 
     it('wires all immutables correctly', async () => {

@@ -25,7 +25,11 @@
         "deploy:sepolia:dashboard": "hardhat ignition deploy ignition/modules/A7A5AA_Sepolia.ts --network truffle-dashboard --parameters ignition/parameters/sepolia.json --verify",
         "deploy:sepolia:dry-run": "hardhat ignition visualize ignition/modules/A7A5AA_Sepolia.ts",
         "format": "prettier --write \"**/*.{sol,ts,js}\"",
-        "format:check": "prettier --check \"**/*.{sol,ts,js}\""
+        "format:check": "prettier --check \"**/*.{sol,ts,js}\"",
+        "lint:sol": "solhint 'contracts/**/*.sol'",
+        "lint:slither": "slither . --config-file slither.config.json",
+        "lint:slither:high": "slither . --config-file slither.config.json --filter-results-exclude medium,low,informational",
+        "audit": "pnpm lint:sol && pnpm test:coverage"
     },
     "dependencies": {
         "@openzeppelin/community-contracts": "github:OpenZeppelin/openzeppelin-community-contracts",
@@ -58,6 +62,8 @@
         "mocha": "^11.0.0",
         "prettier": "^3.8.3",
         "prettier-plugin-solidity": "^2.3.1",
+        "solhint": "^5.2.0",
+        "solhint-plugin-prettier": "^0.1.0",
         "typescript": "^5.6.2"
     }
 }

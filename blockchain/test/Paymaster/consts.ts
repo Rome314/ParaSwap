@@ -15,7 +15,7 @@ export const A7A5_GAS_FUNDING = 5_000_000_000n; // 5,000 A7A5 held by the accoun
 export const A7A5_SWAP_IN = 1_000_000_000n; // 1,000 A7A5 swapped to USDT in the e2e
 export const USDT_POKE = 1_000_000n; // 1 USDT per TWAP warm-up poke
 
-export const TWAP_WINDOW = 60; // seconds
+export const TWAP_WINDOW = 300; // seconds (matches MIN_TWAP_WINDOW in A7A5UsdtTwapOracle)
 export const MAX_STALENESS = 2 * 24 * 60 * 60; // 2 days, > Chainlink USDT/ETH heartbeat
 export const FAR_DEADLINE = BigInt(Math.floor(Date.now() / 1000) + 3600);
 

@@ -29,12 +29,14 @@ contract A7A5AccountFactoryV2 {
     error A7A5AccountFactoryV2__InvalidImplementation();
     error A7A5AccountFactoryV2__SpenderNotAllowed(address spender);
 
+    event SpenderWhitelisted(address indexed spender);
+
     constructor(address impl_, address[] memory allowedSpenders_) {
-        if (impl_.code.length == 0)
-            revert A7A5AccountFactoryV2__InvalidImplementation();
+        if (impl_.code.length == 0) revert A7A5AccountFactoryV2__InvalidImplementation();
         _impl = impl_;
         for (uint256 i; i < allowedSpenders_.length; ++i) {
             isAllowedSpender[allowedSpenders_[i]] = true;
+            emit SpenderWhitelisted(allowedSpenders_[i]);
         }
     }
 
@@ -49,23 +51,13 @@ contract A7A5AccountFactoryV2 {
     function predictAddress(address owner_) public view returns (address) {
         bytes32 salt = _salt(owner_);
         bytes32 bytecodeHash = keccak256(
-            abi.encodePacked(
-                type(ERC1967Proxy).creationCode,
-                abi.encode(_impl, _initData(owner_))
-            )
+            abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_impl, _initData(owner_)))
         );
         return
             address(
                 uint160(
                     uint256(
-                        keccak256(
-                            abi.encodePacked(
-                                bytes1(0xff),
-                                address(this),
-                                salt,
-                                bytecodeHash
-                            )
-                        )
+                        keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, bytecodeHash))
                     )
                 )
             );
@@ -89,9 +81,7 @@ contract A7A5AccountFactoryV2 {
     ) public returns (address) {
         for (uint256 i; i < approvals.length; ++i) {
             if (!isAllowedSpender[approvals[i].spender]) {
-                revert A7A5AccountFactoryV2__SpenderNotAllowed(
-                    approvals[i].spender
-                );
+                revert A7A5AccountFactoryV2__SpenderNotAllowed(approvals[i].spender);
             }
         }
         address predicted = predictAddress(owner_);

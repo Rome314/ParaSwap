@@ -14,7 +14,7 @@ const {loadFixture} = networkHelpers;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const TWAP_WINDOW = 60; // seconds
+const TWAP_WINDOW = 300; // seconds (matches MIN_TWAP_WINDOW in A7A5UsdtTwapOracle)
 const MAX_STALENESS = 2 * 24 * 60 * 60; // 2 days
 const USDT_POKE = 1_000_000n; // 1 USDT (6 dec)
 const FAR_DEADLINE = BigInt(Math.floor(Date.now() / 1000) + 7200);
@@ -44,11 +44,12 @@ async function deployOracleForkFixture() {
     ADDRESSES.SWAP_ROUTER_02,
     ADDRESSES.QUOTER_V2,
     ADDRESSES.V3_FEE_TIER,
+    deployerAddr,
   ]);
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();
 
-  // Grow the observation buffer and write 3 observations across 140s > TWAP_WINDOW.
+  // Grow the observation buffer and write 3 observations across 340s > TWAP_WINDOW (300s).
   const pool = new ethers.Contract(ADDRESSES.V3_POOL_USDT_WA7A5, V3_POOL_ABI, deployer);
   await (await pool.increaseObservationCardinalityNext(30)).wait();
 
@@ -57,7 +58,7 @@ async function deployOracleForkFixture() {
   await (await (usdt as any).approve(facadeAddr, USDT_POKE * 10n)).wait();
 
   for (let i = 0; i < 3; i++) {
-    await networkHelpers.time.increase(45);
+    await networkHelpers.time.increase(110);
     // SIDE.BUY = 0: spend USDT to buy wA7A5, writing a pool observation each block.
     await (await (facade as any).connect(deployer).swapWA7A5(USDT_POKE, 0n, 0n, FAR_DEADLINE)).wait();
   }
@@ -87,7 +88,10 @@ async function deployOracleForkFixture() {
   await usdtOracle.waitForDeployment();
 
   // Deploy V2 spot oracle (no warmup needed — reads live reserves).
-  const v2Oracle = await ethers.deployContract('A7A5UsdtV2Oracle', [ADDRESSES.V2_PAIR_USDT_A7A5, ADDRESSES.A7A5, ADDRESSES.USDT]);
+  // minReserveA7A5 = 1 A7A5 raw unit (6 dec); fork test just verifies the oracle returns a price.
+  // The InsufficientLiquidity guard is tested at meaningful thresholds in oracle-unit.test.ts.
+  const MIN_RESERVE_A7A5 = 1n;
+  const v2Oracle = await ethers.deployContract('A7A5UsdtV2Oracle', [ADDRESSES.V2_PAIR_USDT_A7A5, ADDRESSES.A7A5, ADDRESSES.USDT, MIN_RESERVE_A7A5]);
   await v2Oracle.waitForDeployment();
 
   // A7A5NativeOracle backed by V2 spot price; wa7a5 is passed only for a7a5Dec lookup.
@@ -164,20 +168,20 @@ const run = forkReady(ADDRESSES.V3_POOL_USDT_WA7A5, ADDRESSES.CHAINLINK_USDT_ETH
       expect(await (twap as any).version()).to.equal(1n);
     });
 
-    it('latestAnswer() with a 120s window returns a positive price', async function () {
-      // 140s of warmup history covers the 120s window (target = T+20, between T and T+45).
+    it('latestAnswer() with an explicit 300s window returns a positive price', async function () {
+      // Fixture warmup = 3 × 110s + 5s = 335s of history, which covers the 300s window.
       const {deployerAddr} = await loadFixture(deployOracleForkFixture);
-      const twap120 = await ethers.deployContract('A7A5UsdtTwapOracle', [
+      const twap300 = await ethers.deployContract('A7A5UsdtTwapOracle', [
         ADDRESSES.V3_POOL_USDT_WA7A5,
         ADDRESSES.WA7A5,
         ADDRESSES.USDT,
-        120,
+        300,
         deployerAddr,
       ]);
-      await twap120.waitForDeployment();
-      const answer: bigint = await (twap120 as any).latestAnswer();
-      console.log(`\n  A7A5/USDT (120s window): ${formatUnits(answer, 8)} USDT per A7A5`);
-      console.log(`  USDT/A7A5 (120s window): ${formatUnits6(100_000_000_000_000n / answer)} A7A5 per USDT`);
+      await twap300.waitForDeployment();
+      const answer: bigint = await (twap300 as any).latestAnswer();
+      console.log(`\n  A7A5/USDT (300s window): ${formatUnits(answer, 8)} USDT per A7A5`);
+      console.log(`  USDT/A7A5 (300s window): ${formatUnits6(100_000_000_000_000n / answer)} A7A5 per USDT`);
       expect(answer).to.be.greaterThan(0n);
     });
   });

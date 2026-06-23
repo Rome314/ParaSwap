@@ -43,8 +43,7 @@ contract SimpleA7A5Account is IAccount {
         bytes32 userOpHash,
         uint256 missingAccountFunds
     ) external returns (uint256 validationData) {
-        if (msg.sender != address(ENTRY_POINT))
-            revert SimpleA7A5Account__NotEntryPoint();
+        if (msg.sender != address(ENTRY_POINT)) revert SimpleA7A5Account__NotEntryPoint();
 
         // eth_sign / personal_sign prefix, inlined to avoid the ^0.8.24 MessageHashUtils dependency.
         bytes32 ethHash = keccak256(

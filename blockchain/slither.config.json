@@ -1,0 +1,5 @@
+{
+  "filter_paths": "node_modules,contracts/test,contracts/vendor,contracts/interfaces",
+  "exclude_informational": false,
+  "sarif": "./slither-report.sarif"
+}
