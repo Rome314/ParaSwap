@@ -23,3 +23,6 @@ contracts/.hardhat/
 .claude/
 .cursor/
 .skills-lock.json
+
+# Python
+.venv/
