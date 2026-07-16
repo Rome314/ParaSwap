@@ -8,6 +8,11 @@ describe('A7A5Account (unit)', function () {
   // ── Constructor / Initialization ────────────────────────────────────────────
 
   describe('initialization', function () {
+    it('constructor rejects a zero EntryPoint', async function () {
+      const factory = await ethers.getContractFactory('A7A5Account');
+      await expect(factory.deploy(ethers.ZeroAddress)).to.be.revertedWithCustomError({interface: factory.interface} as any, 'A7A5Account__ZeroAddress');
+    });
+
     it('implementation is locked — bare impl reverts on initialize', async function () {
       const {impl} = await loadFixture(deployAccountFixture);
       const randomAddr = ethers.Wallet.createRandom().address;

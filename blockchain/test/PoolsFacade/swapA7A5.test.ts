@@ -48,7 +48,7 @@ describe('swapA7A5', function () {
     it('emits A7A5Swapped with DIRECT strategy', async () => {
       await expect(facade.connect(trader).swapA7A5(USDT_IN, side, 0n, FAR_DEADLINE))
         .to.emit(facade, 'A7A5Swapped')
-        .withArgs(traderAddr, side, 0, USDT_IN, (value: bigint) => value > 0n);
+        .withArgs(traderAddr, traderAddr, side, 0, USDT_IN, (value: bigint) => value > 0n);
     });
 
     it('trader receives A7A5 and spends exactly USDT_IN', async () => {
@@ -149,7 +149,7 @@ describe('swapA7A5', function () {
       console.log('\n  ── swapA7A5 BUY — amountOutMin too high ────────────');
       const msg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(USDT_IN, side, ethers.MaxUint256, FAR_DEADLINE));
       console.log(`        revert msg: ${msg.slice(0, 80)}`);
-      expect(msg, "must revert with 'insufficient output'").to.contain('insufficient output');
+      expect(msg, "must revert with 'InsufficientOutput'").to.contain('InsufficientOutput');
     });
 
     it('swapA7A5 BUY: succeeds when amountOutMin is ≤ actual output', async () => {
@@ -320,6 +320,60 @@ describe('swapA7A5', function () {
     });
   });
 
+  // ── custom recipient ────────────────────────────────────────────────────
+  describe('custom recipient', function () {
+    let recipient: HardhatEthersSigner;
+    let recipientAddr: string;
+
+    before(() => console.log('\n  ── custom recipient ────────────────────────────────'));
+
+    it('BUY: recipient receives quoted A7A5, caller balance unchanged', async () => {
+      console.log('\n  ── swapA7A5 BUY — custom recipient ─────────────────');
+      ({facade, facadeAddr, trader, traderAddr} = await loadFixture(buyFixture));
+      ({usdt, a7a5} = tokens());
+      [, , recipient] = await ethers.getSigners();
+      recipientAddr = await recipient.getAddress();
+
+      const quoted = await facade.quoteA7A5PerUSDT(USDT_IN, SIDE.BUY);
+      const callerA7A5Before = await a7a5.balanceOf(traderAddr);
+
+      await facade.connect(trader)['swapA7A5(uint256,uint8,uint256,uint256,address)'](
+        USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE, recipientAddr
+      );
+
+      const recipientGained = await a7a5.balanceOf(recipientAddr);
+      console.log(`        quoted           ${formatUnits6(quoted)} A7A5`);
+      console.log(`        recipient gained ${formatUnits6(recipientGained)} A7A5`);
+
+      expect(recipientGained).to.be.closeTo(quoted, A7A5_MAX_ROUNDING_ERROR, 'recipient must receive quoted A7A5');
+      expect(await a7a5.balanceOf(traderAddr)).to.equal(callerA7A5Before, 'caller A7A5 balance must be unchanged');
+      expect(await a7a5.balanceOf(facadeAddr)).to.equal(0n, 'facade must hold no A7A5');
+    });
+
+    it('SELL: recipient receives quoted USDT, caller balance unchanged', async () => {
+      console.log('\n  ── swapA7A5 SELL — custom recipient ────────────────');
+      ({facade, facadeAddr, trader, traderAddr} = await loadFixture(sellFixture));
+      ({usdt, a7a5} = tokens());
+      [, , recipient] = await ethers.getSigners();
+      recipientAddr = await recipient.getAddress();
+
+      const quoted = await facade.quoteA7A5PerUSDT(A7A5_IN, SIDE.SELL);
+      const callerUsdtBefore = await usdt.balanceOf(traderAddr);
+
+      await facade.connect(trader)['swapA7A5(uint256,uint8,uint256,uint256,address)'](
+        A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE, recipientAddr
+      );
+
+      const recipientUsdt = await usdt.balanceOf(recipientAddr);
+      console.log(`        quoted           ${formatUnits6(quoted)} USDT`);
+      console.log(`        recipient gained ${formatUnits6(recipientUsdt)} USDT`);
+
+      expect(recipientUsdt).to.equal(quoted, 'recipient must receive quoted USDT');
+      expect(await usdt.balanceOf(traderAddr)).to.equal(callerUsdtBefore, 'caller USDT balance must be unchanged');
+      expect(await usdt.balanceOf(facadeAddr)).to.equal(0n, 'facade must hold no USDT');
+    });
+  });
+
   describe('REVERTS', async function () {
     before(() => console.log('\n  ── REVERTS ─────────────────────────────────────────'));
     it("swapA7A5: reverts 'insufficient allowance' when caller has no token approval", async () => {
@@ -329,8 +383,8 @@ describe('swapA7A5', function () {
       const sellMsg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
       console.log(`        BUY revert msg:  ${buyMsg.slice(0, 80)}`);
       console.log(`        SELL revert msg: ${sellMsg.slice(0, 80)}`);
-      expect(buyMsg).to.contain('insufficient allowance');
-      expect(sellMsg).to.contain('insufficient allowance');
+      expect(buyMsg).to.contain('InsufficientAllowance');
+      expect(sellMsg).to.contain('InsufficientAllowance');
     });
 
     it("swapA7A5: reverts 'empty reserves' when V2 pair reserves are zeroed via storage", async () => {
@@ -342,7 +396,7 @@ describe('swapA7A5', function () {
       await (usdt.connect(trader) as any).approve(facadeAddr, USDT_IN);
       const msg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
       console.log(`        revert msg: ${msg}`);
-      expect(msg, "must revert with 'empty reserves'").to.contain('empty reserves');
+      expect(msg, "must revert with 'EmptyReserves'").to.contain('EmptyReserves');
       await snap.restore();
     });
 
@@ -353,8 +407,8 @@ describe('swapA7A5', function () {
       const sellMsg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(0n, SIDE.SELL, 0n, FAR_DEADLINE));
       console.log(`        BUY revert msg:  ${buyMsg.slice(0, 80)}`);
       console.log(`        SELL revert msg: ${sellMsg.slice(0, 80)}`);
-      expect(buyMsg).to.contain('zero amountIn');
-      expect(sellMsg).to.contain('zero amountIn');
+      expect(buyMsg).to.contain('ZeroAmountIn');
+      expect(sellMsg).to.contain('ZeroAmountIn');
     });
 
     it("swapA7A5: reverts 'expired' when deadline is in the past", async () => {
@@ -364,8 +418,8 @@ describe('swapA7A5', function () {
       const sellMsg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(A7A5_IN, SIDE.SELL, 0n, PAST_DEADLINE));
       console.log(`        BUY revert msg:  ${buyMsg.slice(0, 80)}`);
       console.log(`        SELL revert msg: ${sellMsg.slice(0, 80)}`);
-      expect(buyMsg).to.contain('expired');
-      expect(sellMsg).to.contain('expired');
+      expect(buyMsg).to.contain('Expired');
+      expect(sellMsg).to.contain('Expired');
     });
   });
 });

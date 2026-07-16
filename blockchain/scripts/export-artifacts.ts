@@ -34,6 +34,25 @@ const EXPORTS: ExportSpec[] = [
     artifact: 'contracts/oracle/A7A5UsdtTwapOracle.sol/A7A5UsdtTwapOracle.json',
   },
   {out: 'A7A5Paymaster.json', artifact: 'contracts/paymaster/A7A5Paymaster.sol/A7A5Paymaster.json'},
+  {out: 'UsdtPaymaster.json', artifact: 'contracts/paymaster/UsdtPaymaster.sol/UsdtPaymaster.json'},
+  {out: 'UsdtNativeOracle.json', artifact: 'contracts/oracle/UsdtNativeOracle.sol/UsdtNativeOracle.json'},
+  {out: 'A7A5Account.json', artifact: 'contracts/account/A7A5Account.sol/A7A5Account.json'},
+  {
+    out: 'A7A5AccountFactoryV2.json',
+    artifact: 'contracts/account/A7A5AccountFactoryV2.sol/A7A5AccountFactoryV2.json',
+  },
+  {
+    out: 'A7A5WebAuthnAccount.json',
+    artifact: 'contracts/account/A7A5WebAuthnAccount.sol/A7A5WebAuthnAccount.json',
+  },
+  {
+    out: 'A7A5EIP7702Account.json',
+    artifact: 'contracts/account/A7A5EIP7702Account.sol/A7A5EIP7702Account.json',
+  },
+  {
+    out: 'A7A5AccountFactory.json',
+    artifact: 'contracts/account/A7A5AccountFactory.sol/A7A5AccountFactory.json',
+  },
   {
     out: 'SimpleA7A5Account.json',
     artifact: 'contracts/account/SimpleA7A5Account.sol/SimpleA7A5Account.json',
@@ -65,23 +84,24 @@ function findArtifact(relativePath: string): string | null {
   return preferred ?? matches[0];
 }
 
-function exportAbi(spec: ExportSpec) {
+function exportAbi(spec: ExportSpec): boolean {
   const artifactPath = findArtifact(spec.artifact);
   if (!artifactPath) {
-    console.warn(`[export-artifacts] skip ${spec.out}: artifact not found (${spec.artifact})`);
-    return;
+    console.error(`[export-artifacts] missing ${spec.out}: artifact not found (${spec.artifact})`);
+    return false;
   }
 
   const raw = JSON.parse(fs.readFileSync(artifactPath, 'utf8')) as {abi?: unknown};
   if (!raw.abi) {
-    console.warn(`[export-artifacts] skip ${spec.out}: no abi field in ${artifactPath}`);
-    return;
+    console.error(`[export-artifacts] missing ${spec.out}: no abi field in ${artifactPath}`);
+    return false;
   }
 
   fs.mkdirSync(OUT, {recursive: true});
   const outPath = path.join(OUT, spec.out);
   fs.writeFileSync(outPath, `${JSON.stringify(raw.abi, null, 2)}\n`);
   console.log(`[export-artifacts] ${spec.out} ← ${path.relative(ROOT, artifactPath)}`);
+  return true;
 }
 
 const ABI_FILES_FOR_BACKEND = [
@@ -92,6 +112,13 @@ const ABI_FILES_FOR_BACKEND = [
   'A7A5NativeOracle.json',
   'A7A5UsdtTwapOracle.json',
   'A7A5Paymaster.json',
+  'UsdtPaymaster.json',
+  'UsdtNativeOracle.json',
+  'A7A5Account.json',
+  'A7A5AccountFactoryV2.json',
+  'A7A5WebAuthnAccount.json',
+  'A7A5EIP7702Account.json',
+  'A7A5AccountFactory.json',
   'SimpleA7A5Account.json',
   'erc20.min.json',
 ];
@@ -125,7 +152,10 @@ async function main() {
     process.exit(1);
   }
 
-  for (const spec of EXPORTS) exportAbi(spec);
+  const missing = EXPORTS.filter((spec) => !exportAbi(spec));
+  if (missing.length > 0) {
+    throw new Error(`ABI export failed for: ${missing.map((spec) => spec.out).join(', ')}`);
+  }
   await syncBackendContracts();
 }
 

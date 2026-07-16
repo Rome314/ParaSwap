@@ -6,7 +6,7 @@ import {ADDRESSES} from '../../common/addresses.js';
 import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.js';
 import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import type {IA7A5} from '../../types/ethers-contracts/index.js';
-import {formatUnits6, forkReady} from '../helpers.js';
+import {formatUnits6, forkReady, A7A5_MAX_ROUNDING_ERROR} from '../helpers.js';
 
 // ── swapA7A5AtBestQuote ───────────────────────────────────────────────
 describe('swapA7A5AtBestQuote', function () {
@@ -164,6 +164,95 @@ describe('swapA7A5AtBestQuote', function () {
     });
   });
 
+  // ── custom recipient ──────────────────────────────────────────────────
+  describe('custom recipient', function () {
+    before(() => console.log('\n  ── swapA7A5AtBestQuote custom recipient ─────────────'));
+
+    it('BUY DIRECT: recipient receives quoted A7A5, caller unchanged', async () => {
+      console.log('\n  ── BUY DIRECT — custom recipient ────────────────────');
+      ({facade, facadeAddr, trader, traderAddr} = await loadFixture(buyFixture));
+      ({usdt, a7a5} = tokens());
+
+      // Force DIRECT strategy
+      const snap = await setV2Reserve(ADDRESSES.V2_PAIR_USDT_A7A5, null, 1_000_000_000n);
+      const [quoted, strategyRaw] = await facade.getBestQuoteA7A5PerUSDT.staticCall(USDT_IN, SIDE.BUY);
+      expect(Number(strategyRaw)).to.equal(STRATEGY.DIRECT);
+
+      const [, , recipientSigner] = await ethers.getSigners();
+      const recipientAddr = await recipientSigner.getAddress();
+      const callerA7A5Before = await a7a5.balanceOf(traderAddr);
+
+      await facade.connect(trader)['swapA7A5AtBestQuote(uint256,uint8,uint256,uint256,address)'](
+        USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE, recipientAddr
+      );
+
+      const recipientGained = await a7a5.balanceOf(recipientAddr);
+      console.log(`        quoted           ${formatUnits6(quoted)} A7A5`);
+      console.log(`        recipient gained ${formatUnits6(recipientGained)} A7A5`);
+
+      expect(recipientGained).to.be.closeTo(quoted, 2n, 'recipient must receive quoted A7A5');
+      expect(await a7a5.balanceOf(traderAddr)).to.equal(callerA7A5Before, 'caller A7A5 must be unchanged');
+      expect(await a7a5.balanceOf(facadeAddr)).to.equal(0n, 'facade must hold no A7A5');
+      await snap.restore();
+    });
+
+    it('BUY MIXED: recipient receives A7A5 via unwrap, caller unchanged', async () => {
+      console.log('\n  ── BUY MIXED — custom recipient ─────────────────────');
+      ({facade, facadeAddr, trader, traderAddr} = await loadFixture(buyFixture));
+      ({usdt, a7a5} = tokens());
+
+      // Force MIXED strategy
+      const snap = await setV2Reserve(ADDRESSES.V2_PAIR_USDT_A7A5, 1000n, null);
+      const [quoted, strategyRaw] = await facade.getBestQuoteA7A5PerUSDT.staticCall(USDT_IN, SIDE.BUY);
+      expect(Number(strategyRaw)).to.equal(STRATEGY.MIXED);
+
+      const [, , recipientSigner] = await ethers.getSigners();
+      const recipientAddr = await recipientSigner.getAddress();
+      const callerA7A5Before = await a7a5.balanceOf(traderAddr);
+
+      await facade.connect(trader)['swapA7A5AtBestQuote(uint256,uint8,uint256,uint256,address)'](
+        USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE, recipientAddr
+      );
+
+      const recipientGained = await a7a5.balanceOf(recipientAddr);
+      console.log(`        quoted           ${formatUnits6(quoted)} A7A5`);
+      console.log(`        recipient gained ${formatUnits6(recipientGained)} A7A5`);
+
+      expect(recipientGained).to.be.closeTo(quoted, A7A5_MAX_ROUNDING_ERROR, 'recipient must receive quoted A7A5 (MIXED)');
+      expect(await a7a5.balanceOf(traderAddr)).to.equal(callerA7A5Before, 'caller A7A5 must be unchanged');
+      expect(await a7a5.balanceOf(facadeAddr)).to.be.lessThanOrEqual(1n, 'facade must hold no A7A5 (≤1 wei dust)');
+      await snap.restore();
+    });
+
+    it('SELL MIXED: recipient receives USDT via wrap+V3, caller unchanged', async () => {
+      console.log('\n  ── SELL MIXED — custom recipient ────────────────────');
+      ({facade, facadeAddr, trader, traderAddr} = await loadFixture(sellFixture));
+      ({usdt, a7a5} = tokens());
+
+      // Force MIXED strategy
+      const snap = await setV2Reserve(ADDRESSES.V2_PAIR_USDT_A7A5, null, 1000n);
+      const [quoted, strategyRaw] = await facade.getBestQuoteA7A5PerUSDT.staticCall(A7A5_IN, SIDE.SELL);
+      expect(Number(strategyRaw)).to.equal(STRATEGY.MIXED);
+
+      const [, , recipientSigner] = await ethers.getSigners();
+      const recipientAddr = await recipientSigner.getAddress();
+      const callerUsdtBefore = await usdt.balanceOf(traderAddr);
+
+      await facade.connect(trader)['swapA7A5AtBestQuote(uint256,uint8,uint256,uint256,address)'](
+        A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE, recipientAddr
+      );
+
+      const recipientUsdt = await usdt.balanceOf(recipientAddr);
+      console.log(`        quoted           ${formatUnits6(quoted)} USDT`);
+      console.log(`        recipient gained ${formatUnits6(recipientUsdt)} USDT`);
+
+      expect(recipientUsdt).to.equal(quoted, 'recipient must receive quoted USDT (MIXED)');
+      expect(await usdt.balanceOf(traderAddr)).to.equal(callerUsdtBefore, 'caller USDT must be unchanged');
+      expect(await usdt.balanceOf(facadeAddr)).to.equal(0n, 'facade must hold no USDT');
+      await snap.restore();
+    });
+  });
+
   // ── REVERTS ──────────────────────────────────────────────────────────
   describe('REVERTS', function () {
     before(() => console.log('\n  ── swapA7A5AtBestQuote REVERTS ─────────────────────'));
@@ -175,8 +264,8 @@ describe('swapA7A5AtBestQuote', function () {
       const sellMsg = await revertMsg(facade.connect(trader).swapA7A5AtBestQuote.staticCall(0n, SIDE.SELL, 0n, FAR_DEADLINE));
       console.log(`        BUY:  ${buyMsg.slice(0, 80)}`);
       console.log(`        SELL: ${sellMsg.slice(0, 80)}`);
-      expect(buyMsg).to.contain('zero amountIn');
-      expect(sellMsg).to.contain('zero amountIn');
+      expect(buyMsg).to.contain('ZeroAmountIn');
+      expect(sellMsg).to.contain('ZeroAmountIn');
     });
 
     it("reverts 'expired' when deadline is in the past", async () => {
@@ -186,8 +275,8 @@ describe('swapA7A5AtBestQuote', function () {
       const sellMsg = await revertMsg(facade.connect(trader).swapA7A5AtBestQuote.staticCall(A7A5_IN, SIDE.SELL, 0n, PAST_DEADLINE));
       console.log(`        BUY:  ${buyMsg.slice(0, 80)}`);
       console.log(`        SELL: ${sellMsg.slice(0, 80)}`);
-      expect(buyMsg).to.contain('expired');
-      expect(sellMsg).to.contain('expired');
+      expect(buyMsg).to.contain('Expired');
+      expect(sellMsg).to.contain('Expired');
     });
 
     it("reverts 'insufficient allowance' when USDT allowance is zero (BUY)", async () => {
@@ -195,7 +284,7 @@ describe('swapA7A5AtBestQuote', function () {
       const {facade, trader} = await loadFixture(deployFacadeFixture);
       const msg = await revertMsg(facade.connect(trader).swapA7A5AtBestQuote.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
       console.log(`        revert: ${msg.slice(0, 80)}`);
-      expect(msg).to.contain('insufficient allowance');
+      expect(msg).to.contain('InsufficientAllowance');
     });
 
     it("reverts 'insufficient output' when amountOutMin exceeds actual output (BUY)", async () => {
@@ -203,7 +292,7 @@ describe('swapA7A5AtBestQuote', function () {
       ({facade, facadeAddr, trader, traderAddr} = await loadFixture(buyFixture));
       const msg = await revertMsg(facade.connect(trader).swapA7A5AtBestQuote.staticCall(USDT_IN, SIDE.BUY, ethers.MaxUint256, FAR_DEADLINE));
       console.log(`        revert: ${msg.slice(0, 80)}`);
-      expect(msg).to.contain('insufficient output');
+      expect(msg).to.contain('InsufficientOutput');
     });
   });
 });

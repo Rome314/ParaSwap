@@ -16,6 +16,7 @@ error A7A5UsdtTwapOracle__WindowTooShort(uint32 window, uint32 minWindow);
 error A7A5UsdtTwapOracle__PoolMismatch();
 error A7A5UsdtTwapOracle__NoHistoricalData();
 error A7A5UsdtTwapOracle__InvalidRatio();
+error A7A5UsdtTwapOracle__ZeroAddress();
 
 // ── Events ──────────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,11 @@ contract A7A5UsdtTwapOracle is AggregatorV3Interface, Ownable2Step {
         uint32 window,
         address owner_
     ) Ownable(owner_) {
+        if (address(pool) == address(0) || address(wa7a5) == address(0) || usdt == address(0)) {
+            revert A7A5UsdtTwapOracle__ZeroAddress();
+        }
         address a7a5 = wa7a5.A7A5();
+        if (a7a5 == address(0)) revert A7A5UsdtTwapOracle__ZeroAddress();
         // Both pool tokens must be exactly {wa7a5, usdt}.
         address t0 = pool.token0();
         address t1 = pool.token1();
@@ -158,6 +163,7 @@ contract A7A5UsdtTwapOracle is AggregatorV3Interface, Ownable2Step {
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0] = window;
         secondsAgos[1] = 0;
+        // slither-disable-next-line unused-return
         (int56[] memory tickCumulatives, ) = POOL.observe(secondsAgos);
         int56 delta = tickCumulatives[1] - tickCumulatives[0];
         int56 windowI = int56(uint56(window));

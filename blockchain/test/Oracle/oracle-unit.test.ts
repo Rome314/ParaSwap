@@ -9,6 +9,7 @@ const {ethers} = conn;
 const DECIMALS_6 = 6;
 const DECIMALS_8 = 8;
 const DECIMALS_18 = 18;
+const UNIT_6 = 10n ** 6n;
 const MIN_MAX_STALENESS = 5 * 60; // 5 minutes in seconds
 const MIN_TWAP_WINDOW = 300; // seconds (matches A7A5UsdtTwapOracle.MIN_TWAP_WINDOW)
 
@@ -103,6 +104,38 @@ async function deployTwapOracle(
   return {deployer, a7a5Token, wa7a5, usdt, pool, twap, wa7a5Addr, usdtAddr};
 }
 
+async function deployV2Oracle(minReserveA7A5 = UNIT_6, reserves: [bigint, bigint] = [1_000_000n * UNIT_6, 100_000n * UNIT_6], reverse = false) {
+  const a7a5 = await ethers.deployContract('MockSwapToken', ['A7A5', 'A7A5', DECIMALS_6]);
+  const usdt = await ethers.deployContract('MockSwapToken', ['USDT', 'USDT', DECIMALS_6]);
+  const pair = await ethers.deployContract('MockSecurityV2Pair', [
+    reverse ? await usdt.getAddress() : await a7a5.getAddress(),
+    reverse ? await a7a5.getAddress() : await usdt.getAddress(),
+  ]);
+  await pair.waitForDeployment();
+  await (pair as any).setReserves(reverse ? reserves[1] : reserves[0], reverse ? reserves[0] : reserves[1]);
+  const oracle = await ethers.deployContract('A7A5UsdtV2Oracle', [
+    await pair.getAddress(),
+    await a7a5.getAddress(),
+    await usdt.getAddress(),
+    minReserveA7A5,
+  ]);
+  await oracle.waitForDeployment();
+  return {a7a5, usdt, pair, oracle};
+}
+
+async function deployUsdtNativeOracle(overrides: {answer?: bigint; updatedAt?: number; maxStaleness?: number} = {}) {
+  const [owner] = await ethers.getSigners();
+  const now = (await ethers.provider.getBlock('latest'))!.timestamp;
+  const feed = await ethers.deployContract('MockChainlinkFeed', [overrides.answer ?? 400_000_000_000_000n, overrides.updatedAt ?? now, DECIMALS_18]);
+  const oracle = await ethers.deployContract('UsdtNativeOracle', [
+    await feed.getAddress(),
+    overrides.maxStaleness ?? 2 * 24 * 3600,
+    await owner.getAddress(),
+  ]);
+  await oracle.waitForDeployment();
+  return {owner, feed, oracle};
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // A7A5NativeOracle
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -191,6 +224,34 @@ describe('A7A5NativeOracle (unit)', function () {
     expect(price).to.be.greaterThan(0n);
     const now = BigInt((await ethers.provider.getBlock('latest'))!.timestamp);
     expect(BigInt(validUntil)).to.be.greaterThan(now);
+  });
+
+  it('rejects incomplete Chainlink rounds and stale tokenPrice reads', async function () {
+    const {oracle, usdtEthFeed} = await deployNativeOracle();
+    await (usdtEthFeed as any).setRound(2, 1);
+    await expect((oracle as any).tokenPriceData()).to.be.revertedWithCustomError(oracle, 'A7A5NativeOracle__IncompleteRound');
+
+    await (usdtEthFeed as any).setRound(2, 2);
+    await (usdtEthFeed as any).setUpdatedAt(1);
+    await expect((oracle as any).tokenPrice()).to.be.revertedWithCustomError(oracle, 'A7A5NativeOracle__StalePrice');
+    const [price, validUntil] = await (oracle as any).tokenPriceData();
+    expect(price).to.be.greaterThan(0n);
+    expect(validUntil).to.be.lessThan(BigInt((await ethers.provider.getBlock('latest'))!.timestamp));
+  });
+
+  it('enforces ownership for staleness changes and rejects zero constructor dependencies', async function () {
+    const {oracle} = await deployNativeOracle();
+    const [, other] = await ethers.getSigners();
+    await expect((oracle as any).connect(other).setMaxStaleness(MIN_MAX_STALENESS)).to.be.revertedWithCustomError(
+      oracle,
+      'OwnableUnauthorizedAccount',
+    );
+
+    const [owner] = await ethers.getSigners();
+    const factory = await ethers.getContractFactory('A7A5NativeOracle');
+    await expect(
+      factory.deploy(ethers.ZeroAddress, ethers.ZeroAddress, ethers.ZeroAddress, MIN_MAX_STALENESS, await owner.getAddress()),
+    ).to.be.revertedWithCustomError({interface: factory.interface} as any, 'A7A5NativeOracle__ZeroAddress');
   });
 });
 
@@ -337,5 +398,113 @@ describe('A7A5UsdtTwapOracle (unit)', function () {
     const answer = await (twap as any).latestAnswer();
     const [, roundAnswer] = await (twap as any).latestRoundData();
     expect(BigInt(roundAnswer)).to.equal(answer);
+  });
+
+  it('surfaces insufficient observation history from the pool', async function () {
+    const {twap, pool} = await deployTwapOracle({tickCumulatives: [0n, 0n]});
+    await (pool as any).setObserveReverts(true);
+    await expect((twap as any).latestAnswer()).to.be.revertedWith('OLD');
+  });
+
+  it('moves monotonically with sustained tick manipulation in the expected token-order direction', async function () {
+    const {twap, pool, wa7a5Addr, usdtAddr} = await deployTwapOracle({tickCumulatives: [0n, 0n]});
+    const neutral = await (twap as any).latestAnswer();
+    await (pool as any).setCumulatives(0n, 1_000n * BigInt(MIN_TWAP_WINDOW));
+    const manipulated = await (twap as any).latestAnswer();
+    if (wa7a5Addr.toLowerCase() < usdtAddr.toLowerCase()) {
+      expect(manipulated).to.be.greaterThan(neutral);
+    } else {
+      expect(manipulated).to.be.lessThan(neutral);
+    }
+  });
+
+  it('enforces owner-only window changes and rejects zero constructor dependencies', async function () {
+    const {twap} = await deployTwapOracle({tickCumulatives: [0n, 0n]});
+    const [, other] = await ethers.getSigners();
+    await expect((twap as any).connect(other).setTwapWindow(MIN_TWAP_WINDOW)).to.be.revertedWithCustomError(twap, 'OwnableUnauthorizedAccount');
+
+    const [owner] = await ethers.getSigners();
+    const factory = await ethers.getContractFactory('A7A5UsdtTwapOracle');
+    await expect(
+      factory.deploy(ethers.ZeroAddress, ethers.ZeroAddress, ethers.ZeroAddress, MIN_TWAP_WINDOW, await owner.getAddress()),
+    ).to.be.revertedWithCustomError({interface: factory.interface} as any, 'A7A5UsdtTwapOracle__ZeroAddress');
+  });
+});
+
+describe('A7A5UsdtV2Oracle (unit/adversarial)', function () {
+  it('prices either reserve ordering and preserves inverse reserve monotonicity', async function () {
+    const {pair, oracle} = await deployV2Oracle();
+    const baseline = await (oracle as any).latestAnswer();
+    const {oracle: reversedOracle} = await deployV2Oracle(UNIT_6, [1_000_000n * UNIT_6, 100_000n * UNIT_6], true);
+    expect(await (reversedOracle as any).latestAnswer()).to.equal(baseline);
+    await (pair as any).setReserves(2_000_000n * UNIT_6, 100_000n * UNIT_6);
+    const deeperA7A5 = await (oracle as any).latestAnswer();
+    await (pair as any).setReserves(1_000_000n * UNIT_6, 200_000n * UNIT_6);
+    const deeperUsdt = await (oracle as any).latestAnswer();
+    expect(deeperA7A5).to.be.lessThan(baseline);
+    expect(deeperUsdt).to.be.greaterThan(baseline);
+  });
+
+  it('rejects thin and empty A7A5 liquidity at the configured threshold', async function () {
+    const threshold = 1_000n * UNIT_6;
+    const {pair, oracle} = await deployV2Oracle(threshold, [threshold, 100_000n * UNIT_6]);
+    expect(await (oracle as any).latestAnswer()).to.be.greaterThan(0n);
+    await (pair as any).setReserves(threshold - 1n, 100_000n * UNIT_6);
+    await expect((oracle as any).latestAnswer()).to.be.revertedWithCustomError(oracle, 'A7A5UsdtV2Oracle__InsufficientLiquidity');
+    await (pair as any).setReserves(0n, 100_000n * UNIT_6);
+    await expect((oracle as any).latestAnswer()).to.be.revertedWithCustomError(oracle, 'A7A5UsdtV2Oracle__InsufficientLiquidity');
+  });
+
+  it('rejects zero dependencies, pair mismatches, and historical round requests', async function () {
+    const {a7a5, usdt, pair, oracle} = await deployV2Oracle();
+    const factory = await ethers.getContractFactory('A7A5UsdtV2Oracle');
+    await expect(factory.deploy(ethers.ZeroAddress, ethers.ZeroAddress, ethers.ZeroAddress, 1n)).to.be.revertedWithCustomError(
+      {interface: factory.interface} as any,
+      'A7A5UsdtV2Oracle__ZeroAddress',
+    );
+    const unrelated = await ethers.deployContract('MockSwapToken', ['Unrelated', 'NOPE', DECIMALS_6]);
+    await expect(factory.deploy(await pair.getAddress(), await a7a5.getAddress(), await unrelated.getAddress(), 1n)).to.be.revertedWithCustomError(
+      {interface: factory.interface} as any,
+      'A7A5UsdtV2Oracle__PairMismatch',
+    );
+    await expect((oracle as any).getRoundData(1)).to.be.revertedWithCustomError(oracle, 'A7A5UsdtV2Oracle__NoHistoricalData');
+    expect(await usdt.getAddress()).to.not.equal(await unrelated.getAddress());
+  });
+});
+
+describe('UsdtNativeOracle (unit/adversarial)', function () {
+  it('rejects invalid and incomplete feed answers', async function () {
+    const {feed, oracle} = await deployUsdtNativeOracle();
+    await (feed as any).setAnswer(0);
+    await expect((oracle as any).tokenPriceData()).to.be.revertedWithCustomError(oracle, 'UsdtNativeOracle__InvalidPrice');
+    await (feed as any).setAnswer(-1);
+    await expect((oracle as any).tokenPriceData()).to.be.revertedWithCustomError(oracle, 'UsdtNativeOracle__InvalidPrice');
+    await (feed as any).setAnswer(400_000_000_000_000n);
+    await (feed as any).setRound(3, 2);
+    await expect((oracle as any).tokenPriceData()).to.be.revertedWithCustomError(oracle, 'UsdtNativeOracle__IncompleteRound');
+  });
+
+  it('returns stale validity data but rejects stale tokenPrice', async function () {
+    const {oracle} = await deployUsdtNativeOracle({updatedAt: 1});
+    const [price, validUntil] = await (oracle as any).tokenPriceData();
+    expect(price).to.be.greaterThan(0n);
+    expect(validUntil).to.be.lessThan(BigInt((await ethers.provider.getBlock('latest'))!.timestamp));
+    await expect((oracle as any).tokenPrice()).to.be.revertedWithCustomError(oracle, 'UsdtNativeOracle__StalePrice');
+  });
+
+  it('enforces constructor, owner, and minimum-staleness checks', async function () {
+    const {oracle} = await deployUsdtNativeOracle();
+    const [owner, other] = await ethers.getSigners();
+    await expect((oracle as any).connect(other).setMaxStaleness(MIN_MAX_STALENESS)).to.be.revertedWithCustomError(
+      oracle,
+      'OwnableUnauthorizedAccount',
+    );
+    await expect((oracle as any).setMaxStaleness(MIN_MAX_STALENESS - 1)).to.be.revertedWithCustomError(oracle, 'UsdtNativeOracle__StalenessTooLow');
+
+    const factory = await ethers.getContractFactory('UsdtNativeOracle');
+    await expect(factory.deploy(ethers.ZeroAddress, MIN_MAX_STALENESS, await owner.getAddress())).to.be.revertedWithCustomError(
+      {interface: factory.interface} as any,
+      'UsdtNativeOracle__ZeroAddress',
+    );
   });
 });

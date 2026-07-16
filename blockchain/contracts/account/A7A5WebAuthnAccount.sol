@@ -72,6 +72,7 @@ contract A7A5WebAuthnAccount is
         return _ENTRY_POINT;
     }
 
+    // slither-disable-next-line dead-code
     function _erc7821AuthorizedExecutor(
         address caller,
         bytes32 mode,

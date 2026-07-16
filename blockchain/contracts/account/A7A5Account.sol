@@ -136,6 +136,7 @@ contract A7A5Account is
         bytes calldata signature
     ) internal view override returns (bool) {
         bytes32 ethHash = MessageHashUtils.toEthSignedMessageHash(hash);
+        // slither-disable-next-line unused-return
         (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(ethHash, signature);
         return err == ECDSA.RecoverError.NoError && recovered == owner();
     }
@@ -146,6 +147,7 @@ contract A7A5Account is
      * @dev Allows the EntryPoint, the owner (direct calls), and self (for atomic
      * batch self-calls) to call execute().
      */
+    // slither-disable-next-line dead-code
     function _erc7821AuthorizedExecutor(
         address caller,
         bytes32 mode,

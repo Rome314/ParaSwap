@@ -13,5 +13,9 @@ struct TokenApproval {
  * @notice Accounts that grant a batch of ERC-20 allowances during initialization.
  */
 interface IApprovalAccount {
+    /// @notice Grant a batch of ERC-20 allowances during account initialization.
+    ///         Called exactly once by the factory immediately after deployment;
+    ///         the reinitializer guard prevents any subsequent call.
+    /// @param approvals  Array of (token, spender, amount) tuples to approve.
     function initializeApprovals(TokenApproval[] calldata approvals) external;
 }

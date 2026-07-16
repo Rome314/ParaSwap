@@ -11,9 +11,12 @@ import {IWA7A5} from "./interfaces/IA7A5.sol";
 // ── Errors ────────────────────────────────────────────────────────────────────
 
 error ParaSwap__ZeroAmountIn();
+error ParaSwap__ZeroRecipient();
 error ParaSwap__Expired();
 error ParaSwap__InsufficientAllowance(address token, uint256 have, uint256 need);
 error ParaSwap__InsufficientOutput(uint256 actual, uint256 minimum);
+error ParaSwap__InvalidRoute(uint8 route);
+error ParaSwap__ZeroAddress();
 
 // ── Events ────────────────────────────────────────────────────────────────────
 
@@ -43,7 +46,16 @@ interface IPoolsFacade {
     function A7A5() external view returns (address);
     function WA7A5() external view returns (address);
     function USDT() external view returns (address);
-    function v3Quoter() external view returns (address);
+    function V3_QUOTER() external view returns (address);
+
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        uint256 deadline,
+        address recipient
+    ) external returns (uint256 amountOut);
 
     function swapA7A5AtBestQuote(
         uint256 amountIn,
@@ -106,6 +118,18 @@ interface IQuoterV2 {
 
 // ── Contract ──────────────────────────────────────────────────────────────────
 
+/// @title  ParaSwap
+/// @notice Multi-route DEX aggregator for A7A5/wA7A5 swaps.
+///         Routes USDT↔A7A5 and USDT↔wA7A5 through PoolsFacade; all other
+///         ERC-20 pairs through Uniswap V3 single-hop, with automatic two-hop
+///         bridging via USDT when one leg involves A7A5 or wA7A5.
+/// @dev    Routing uses a 2-bit dispatch on (tokenIn, tokenOut):
+///           00 → plain V3 single-hop
+///           01 → facade buy (optional V3 tokenIn→USDT first)
+///           10 → facade sell (optional V3 USDT→tokenOut after)
+///           11 → direct A7A5↔wA7A5 wrap/unwrap
+///         A7A5 is fee-on-transfer (FOT); all execution paths use balance-delta
+///         measurements to account for the tax on each hop.
 contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
     using SafeERC20 for IERC20;
 
@@ -116,32 +140,47 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
     address public immutable USDT_TOKEN;
     ISwapRouter02 public immutable V3_ROUTER;
 
+    /// @param _facade   Address of the deployed PoolsFacade contract.
+    /// @param _v3Router Address of the Uniswap V3 SwapRouter02.
+    /// @param owner_    Initial contract owner (receives pause/unpause rights).
     constructor(address _facade, address _v3Router, address owner_) Ownable(owner_) {
+        if (_facade == address(0) || _v3Router == address(0)) revert ParaSwap__ZeroAddress();
+
         IPoolsFacade facade = IPoolsFacade(_facade);
+        address quoter = facade.V3_QUOTER();
+        address a7a5 = facade.A7A5();
+        address wa7a5 = facade.WA7A5();
+        address usdt = facade.USDT();
+        if (
+            quoter == address(0) || a7a5 == address(0) || wa7a5 == address(0) || usdt == address(0)
+        ) {
+            revert ParaSwap__ZeroAddress();
+        }
+
         FACADE = facade;
-        QUOTER = IQuoterV2(facade.v3Quoter());
-        A7A5_TOKEN = facade.A7A5();
-        WA7A5_TOKEN = facade.WA7A5();
-        USDT_TOKEN = facade.USDT();
+        QUOTER = IQuoterV2(quoter);
+        A7A5_TOKEN = a7a5;
+        WA7A5_TOKEN = wa7a5;
+        USDT_TOKEN = usdt;
         V3_ROUTER = ISwapRouter02(_v3Router);
     }
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 
+    /// @notice Pause all swaps. Only callable by the owner.
     function pause() external onlyOwner {
         _pause();
     }
+
+    /// @notice Unpause swaps. Only callable by the owner.
     function unpause() external onlyOwner {
         _unpause();
     }
 
     // ── Public: swap ──────────────────────────────────────────────────────────
 
-    /// @notice Swap `tokenIn` for `tokenOut`.
-    ///         Direct USDT↔A7A5 and USDT↔wA7A5 routes through PoolsFacade.
-    ///         Other ERC20↔A7A5/wA7A5 routes use a two-hop: V3 ERC20→USDT then
-    ///         facade USDT→(w)A7A5, or facade (w)A7A5→USDT then V3 USDT→ERC20.
-    ///         All other pairs execute a single-hop Uniswap V3 swap.
+    /// @notice Swap `tokenIn` for `tokenOut`. Output is sent to the caller.
+    ///         See the overload below for a custom recipient.
     function swap(
         address tokenIn,
         address tokenOut,
@@ -149,8 +188,36 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
         uint256 amountOutMin,
         uint24 fee,
         uint256 deadline
-    ) external nonReentrant whenNotPaused returns (uint256 amountOut) {
+    ) external returns (uint256) {
+        return swap(tokenIn, tokenOut, amountIn, amountOutMin, fee, deadline, msg.sender);
+    }
+
+    /// @notice Swap `tokenIn` for `tokenOut`.
+    ///         Direct USDT↔A7A5 and USDT↔wA7A5 routes through PoolsFacade.
+    ///         Other ERC20↔A7A5/wA7A5 routes use a two-hop: V3 ERC20→USDT then
+    ///         facade USDT→(w)A7A5, or facade (w)A7A5→USDT then V3 USDT→ERC20.
+    ///         All other pairs execute a single-hop Uniswap V3 swap.
+    /// @param tokenIn      Address of the token being sold.
+    /// @param tokenOut     Address of the token being bought.
+    /// @param amountIn     Exact amount of `tokenIn` to spend (caller must pre-approve).
+    /// @param amountOutMin Minimum amount of `tokenOut` to receive; reverts if not met.
+    /// @param fee          Uniswap V3 pool fee tier used for any V3 leg (e.g. 3000 = 0.3 %).
+    ///                     Ignored when the route is facade-only (routes 01/10 with USDT, or 11).
+    /// @param deadline     Unix timestamp after which the call reverts.
+    /// @param recipient    Address that receives the output tokens.
+    /// @return amountOut   Actual tokens received by `recipient` (post-FOT for A7A5 routes).
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        uint24 fee,
+        uint256 deadline,
+        address recipient
+    ) public nonReentrant whenNotPaused returns (uint256 amountOut) {
         if (amountIn == 0) revert ParaSwap__ZeroAmountIn();
+        if (recipient == address(0)) revert ParaSwap__ZeroRecipient();
+        // slither-disable-next-line timestamp
         if (block.timestamp > deadline) revert ParaSwap__Expired();
 
         uint256 allowance = IERC20(tokenIn).allowance(msg.sender, address(this));
@@ -159,30 +226,28 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
         }
 
         // 2-bit route: bit1 = tokenIn is facade, bit0 = tokenOut is facade.
+        // Every route runs its inner/terminal hops with a zero minimum; the single
+        // recipient balance-delta check below is the authoritative slippage bound.
         uint8 route = _isFacadeToken(tokenIn, tokenOut);
         if (route == 0) {
             // 00 — plain V3 single-hop
-            amountOut = _routeViaV3(tokenIn, tokenOut, amountIn, amountOutMin, fee);
+            amountOut = _routeViaV3(tokenIn, tokenOut, amountIn, fee, recipient);
         } else if (route == 3) {
             // 11 — A7A5 ↔ wA7A5: direct wrap/unwrap, no USDT leg
-            amountOut = _routeFacadeToFacade(tokenIn, amountIn);
-        } else if (route == 2) {
-            // 10 — tokenIn is A7A5/wA7A5: direct facade sell (out == USDT) or two-hop sell
-            amountOut =
-                tokenOut == USDT_TOKEN
-                    ? _routeViaFacade(tokenIn, tokenOut, amountIn, deadline)
-                    : _routeTwoHopSell(tokenIn, tokenOut, amountIn, fee, deadline);
-        } else {
-            // 01 — tokenOut is A7A5/wA7A5: direct facade buy (in == USDT) or two-hop buy
-            amountOut =
-                tokenIn == USDT_TOKEN
-                    ? _routeViaFacade(tokenIn, tokenOut, amountIn, deadline)
-                    : _routeTwoHopBuy(tokenIn, tokenOut, amountIn, fee, deadline);
+            amountOut = _routeFacadeToFacade(tokenIn, amountIn, recipient);
+        } else if (route <= 3) {
+            if (tokenIn == USDT_TOKEN || tokenOut == USDT_TOKEN) {
+                amountOut = _facadeSwap(tokenIn, tokenOut, amountIn, deadline, recipient);
+            } else {
+                amountOut = _routeTwoHop(tokenIn, tokenOut, amountIn, fee, deadline, recipient);
+            }
         }
 
+        // Authoritative slippage check: bounds the actual post-FOT amount the
+        // recipient received across every route, so inner legs can safely use 0.
         if (amountOut < amountOutMin) revert ParaSwap__InsufficientOutput(amountOut, amountOutMin);
 
-        emit Swapped(tokenIn, tokenOut, amountIn, amountOut, msg.sender);
+        emit Swapped(tokenIn, tokenOut, amountIn, amountOut, recipient);
     }
 
     // ── Public: quote ─────────────────────────────────────────────────────────
@@ -190,6 +255,11 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
     /// @notice Simulate a swap and return the expected output amount.
     ///         Not view — the V3 quoter is state-mutating (simulates the pool).
     ///         Must be called via callStatic / eth_call. Same routing logic as swap().
+    /// @param tokenIn   Address of the token being sold.
+    /// @param tokenOut  Address of the token being bought.
+    /// @param amountIn  Input amount to simulate.
+    /// @param fee       Uniswap V3 fee tier for any V3 leg. Ignored for facade-only routes.
+    /// @return amountOut Simulated output amount (post-FOT for A7A5 routes).
     function quote(
         address tokenIn,
         address tokenOut,
@@ -217,173 +287,121 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
 
     // ── Internal routing ──────────────────────────────────────────────────────
 
-    /// @dev Routes A7A5 ↔ USDT through PoolsFacade.swapA7A5AtBestQuote.
-    ///      Handles A7A5 fee-on-transfer via balance-deltas on both legs.
-    function _routeViaFacadeA7A5(
+    /// @dev Direct facade route. The inner FACADE.swap runs with a zero minimum;
+    ///      slippage is enforced solely by the top-level recipient balance-delta
+    ///      check in `swap`, which is FOT-correct for every output token.
+    function _facadeSwap(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 deadline
+        uint256 deadline,
+        address recipient
     ) private returns (uint256 amountOut) {
-        SIDE side = tokenIn == A7A5_TOKEN ? SIDE.SELL : SIDE.BUY;
+        IERC20 ITokenIn = IERC20(tokenIn);
+        IERC20 ITokenOut = IERC20(tokenOut);
 
-        uint256 paraInBefore = IERC20(tokenIn).balanceOf(address(this));
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        uint256 effectiveIn = IERC20(tokenIn).balanceOf(address(this)) - paraInBefore;
+        uint256 balanceBefore = ITokenIn.balanceOf(address(this));
+        ITokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
+        uint256 effectiveIn = ITokenIn.balanceOf(address(this)) - balanceBefore;
+        ITokenIn.forceApprove(address(FACADE), effectiveIn);
 
-        IERC20(tokenIn).forceApprove(address(FACADE), effectiveIn);
-        uint256 paraOutBefore = IERC20(tokenOut).balanceOf(address(this));
-        FACADE.swapA7A5AtBestQuote(effectiveIn, side, 0, deadline);
-        IERC20(tokenIn).forceApprove(address(FACADE), 0);
+        uint256 recipientBalanceBefore = ITokenOut.balanceOf(recipient);
+        FACADE.swap(tokenIn, tokenOut, effectiveIn, 0, deadline, recipient);
+        amountOut = ITokenOut.balanceOf(recipient) - recipientBalanceBefore;
 
-        uint256 receivedOut = IERC20(tokenOut).balanceOf(address(this)) - paraOutBefore;
-
-        if (tokenOut == A7A5_TOKEN) {
-            uint256 callerBefore = IERC20(A7A5_TOKEN).balanceOf(msg.sender);
-            IERC20(A7A5_TOKEN).safeTransfer(msg.sender, receivedOut);
-            amountOut = IERC20(A7A5_TOKEN).balanceOf(msg.sender) - callerBefore;
-        } else {
-            IERC20(tokenOut).safeTransfer(msg.sender, receivedOut);
-            amountOut = receivedOut;
-        }
+        ITokenIn.forceApprove(address(FACADE), 0);
     }
 
-    /// @dev Routes wA7A5 ↔ USDT through PoolsFacade.swapWA7A5.
-    ///      Neither wA7A5 nor USDT are FOT, so no balance-delta on input.
-    function _routeViaFacadeWA7A5(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 deadline
-    ) private returns (uint256 amountOut) {
-        SIDE side = tokenIn == WA7A5_TOKEN ? SIDE.SELL : SIDE.BUY;
-
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        IERC20(tokenIn).forceApprove(address(FACADE), amountIn);
-
-        uint256 paraOutBefore = IERC20(tokenOut).balanceOf(address(this));
-        FACADE.swapWA7A5(amountIn, side, 0, deadline);
-        IERC20(tokenIn).forceApprove(address(FACADE), 0);
-
-        amountOut = IERC20(tokenOut).balanceOf(address(this)) - paraOutBefore;
-        IERC20(tokenOut).safeTransfer(msg.sender, amountOut);
-    }
-
-    /// @dev Executes a single-hop Uniswap V3 exactInputSingle.
-    ///      Output goes directly to the caller via recipient=msg.sender.
+    /// @dev Executes a single-hop Uniswap V3 exactInputSingle. Output goes
+    ///      directly to `recipient`. The swap runs with amountOutMinimum = 0;
+    ///      the top-level recipient balance-delta check in `swap` is the sole
+    ///      authoritative slippage bound.
     function _routeViaV3(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 amountOutMin,
-        uint24 fee
+        uint24 fee,
+        address recipient
     ) private returns (uint256 amountOut) {
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        IERC20(tokenIn).forceApprove(address(V3_ROUTER), amountIn);
+        IERC20 ITokenIn = IERC20(tokenIn);
+        ITokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
+        ITokenIn.forceApprove(address(V3_ROUTER), amountIn);
 
         amountOut = V3_ROUTER.exactInputSingle(
             ISwapRouter02.ExactInputSingleParams({
                 tokenIn: tokenIn,
                 tokenOut: tokenOut,
                 fee: fee,
-                recipient: msg.sender,
+                recipient: recipient,
                 amountIn: amountIn,
-                amountOutMinimum: amountOutMin,
+                amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             })
         );
 
-        IERC20(tokenIn).forceApprove(address(V3_ROUTER), 0);
+        ITokenIn.forceApprove(address(V3_ROUTER), 0);
     }
 
     // ── Two-hop swap helpers ──────────────────────────────────────────────────
 
-    /// @dev Two-hop sell: facadeToken → USDT via facade, then USDT → tokenOut via V3.
-    function _routeTwoHopSell(
-        address facadeToken,
+    /// @dev Both hops (intermediate and terminal) deliberately use a zero minimum;
+    ///      the top-level recipient balance-delta check in `swap` is the sole
+    ///      authoritative slippage bound. An adverse fill on any leg is accepted
+    ///      here only if the full route still clears that final minimum.
+    function _routeTwoHop(
+        address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint24 fee,
-        uint256 deadline
-    ) private returns (uint256) {
-        uint256 usdtOut = _facadeSellToUsdt(facadeToken, amountIn, deadline);
-        return _v3Swap(USDT_TOKEN, tokenOut, usdtOut, fee, msg.sender);
-    }
-
-    /// @dev Two-hop buy: tokenIn → USDT via V3, then USDT → facadeToken via facade.
-    function _routeTwoHopBuy(
-        address tokenIn,
-        address facadeToken,
-        uint256 amountIn,
-        uint24 fee,
-        uint256 deadline
-    ) private returns (uint256) {
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        uint256 usdtOut = _v3Swap(tokenIn, USDT_TOKEN, amountIn, fee, address(this));
-        return _facadeBuyFromUsdt(facadeToken, usdtOut, deadline);
-    }
-
-    /// @dev Pulls facadeToken from caller (balance-delta for FOT safety), swaps to USDT
-    ///      via the appropriate facade method, and returns the USDT received.
-    function _facadeSellToUsdt(
-        address facadeToken,
-        uint256 amountIn,
-        uint256 deadline
-    ) private returns (uint256 usdtOut) {
-        uint256 before = IERC20(facadeToken).balanceOf(address(this));
-        IERC20(facadeToken).safeTransferFrom(msg.sender, address(this), amountIn);
-        uint256 effectiveIn = IERC20(facadeToken).balanceOf(address(this)) - before;
-
-        IERC20(facadeToken).forceApprove(address(FACADE), effectiveIn);
-        uint256 usdtBefore = IERC20(USDT_TOKEN).balanceOf(address(this));
-
-        if (facadeToken == A7A5_TOKEN) {
-            FACADE.swapA7A5AtBestQuote(effectiveIn, SIDE.SELL, 0, deadline);
-        } else {
-            FACADE.swapWA7A5(effectiveIn, SIDE.SELL, 0, deadline);
-        }
-
-        IERC20(facadeToken).forceApprove(address(FACADE), 0);
-        usdtOut = IERC20(USDT_TOKEN).balanceOf(address(this)) - usdtBefore;
-    }
-
-    /// @dev Buys facadeToken with USDT via the appropriate facade method,
-    ///      forwards the output to the caller, and returns the amount received.
-    ///      Applies balance-delta for A7A5's second FOT hit on the outbound transfer.
-    function _facadeBuyFromUsdt(
-        address facadeToken,
-        uint256 usdtAmount,
-        uint256 deadline
+        uint256 deadline,
+        address recipient
     ) private returns (uint256 amountOut) {
-        IERC20(USDT_TOKEN).forceApprove(address(FACADE), usdtAmount);
-        uint256 facadeTokenBefore = IERC20(facadeToken).balanceOf(address(this));
+        uint8 route = _isFacadeToken(tokenIn, tokenOut);
+        if (route == 1) {
+            // ERC20 → USDT via V3, then USDT → facadeToken via FACADE.
+            IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+            uint256 usdOut = _v3Swap(tokenIn, USDT_TOKEN, amountIn, 0, fee, address(this));
+            IERC20(USDT_TOKEN).forceApprove(address(FACADE), usdOut);
 
-        if (facadeToken == A7A5_TOKEN) {
-            FACADE.swapA7A5AtBestQuote(usdtAmount, SIDE.BUY, 0, deadline);
+            uint256 balanceBefore = IERC20(tokenOut).balanceOf(recipient);
+
+            FACADE.swap(USDT_TOKEN, tokenOut, usdOut, 0, deadline, recipient);
+            amountOut = IERC20(tokenOut).balanceOf(recipient) - balanceBefore;
+
+            IERC20(USDT_TOKEN).forceApprove(address(FACADE), 0);
+        } else if (route == 2) {
+            // facadeToken → USDT via FACADE, then USDT → ERC20 via V3.
+
+            uint256 facadeBalanceBefore = IERC20(tokenIn).balanceOf(address(this));
+            IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+            uint256 effectiveIn = IERC20(tokenIn).balanceOf(address(this)) - facadeBalanceBefore;
+
+            IERC20(tokenIn).forceApprove(address(FACADE), effectiveIn);
+            uint256 usdOut = FACADE.swap(
+                tokenIn,
+                USDT_TOKEN,
+                effectiveIn,
+                0,
+                deadline,
+                address(this)
+            );
+            IERC20(tokenIn).forceApprove(address(FACADE), 0);
+
+            amountOut = _v3Swap(USDT_TOKEN, tokenOut, usdOut, 0, fee, recipient);
         } else {
-            FACADE.swapWA7A5(usdtAmount, SIDE.BUY, 0, deadline);
-        }
-
-        IERC20(USDT_TOKEN).forceApprove(address(FACADE), 0);
-        uint256 received = IERC20(facadeToken).balanceOf(address(this)) - facadeTokenBefore;
-
-        if (facadeToken == A7A5_TOKEN) {
-            uint256 callerBefore = IERC20(A7A5_TOKEN).balanceOf(msg.sender);
-            IERC20(A7A5_TOKEN).safeTransfer(msg.sender, received);
-            amountOut = IERC20(A7A5_TOKEN).balanceOf(msg.sender) - callerBefore;
-        } else {
-            IERC20(facadeToken).safeTransfer(msg.sender, received);
-            amountOut = received;
+            revert ParaSwap__InvalidRoute(route);
         }
     }
 
     /// @dev V3 exactInputSingle primitive. Assumes `amountIn` of `tokenIn` is
-    ///      already held by this contract. Uses amountOutMinimum=0; callers
-    ///      enforce slippage on the final output.
+    ///      already held by this contract. All callers pass amountOutMin = 0;
+    ///      the top-level recipient balance-delta check in `swap` is the sole
+    ///      authoritative slippage bound.
     function _v3Swap(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
+        uint256 amountOutMin,
         uint24 fee,
         address recipient
     ) private returns (uint256 amountOut) {
@@ -395,7 +413,7 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
                 fee: fee,
                 recipient: recipient,
                 amountIn: amountIn,
-                amountOutMinimum: 0,
+                amountOutMinimum: amountOutMin,
                 sqrtPriceLimitX96: 0
             })
         );
@@ -423,27 +441,12 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
         }
     }
 
-    /// @dev Dispatches direct facade swaps: USDT ↔ A7A5 or USDT ↔ wA7A5.
-    ///      The facade token is whichever of tokenIn/tokenOut is not USDT.
-    function _routeViaFacade(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 deadline
-    ) private returns (uint256) {
-        address facadeToken = tokenIn == USDT_TOKEN ? tokenOut : tokenIn;
-        return
-            facadeToken == A7A5_TOKEN
-                ? _routeViaFacadeA7A5(tokenIn, tokenOut, amountIn, deadline)
-                : _routeViaFacadeWA7A5(tokenIn, tokenOut, amountIn, deadline);
-    }
-
     /// @dev Routes A7A5 ↔ wA7A5 via direct wrap/unwrap — no USDT, no V3.
-    ///      wrap  path: pull A7A5 (balance-delta, FOT hit 1), wrap (FOT hit 2), send wA7A5.
-    ///      unwrap path: pull wA7A5, unwrap (FOT hit 1 inside transfer), send A7A5 (FOT hit 2).
+    ///      The A7A5 legs are measured by balance delta; wA7A5 is non-FOT.
     function _routeFacadeToFacade(
         address tokenIn,
-        uint256 amountIn
+        uint256 amountIn,
+        address recipient
     ) private returns (uint256 amountOut) {
         if (tokenIn == A7A5_TOKEN) {
             uint256 before = IERC20(A7A5_TOKEN).balanceOf(address(this));
@@ -454,7 +457,7 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
             amountOut = IWA7A5(WA7A5_TOKEN).wrap(effectiveIn);
             IERC20(A7A5_TOKEN).forceApprove(WA7A5_TOKEN, 0);
 
-            IERC20(WA7A5_TOKEN).safeTransfer(msg.sender, amountOut);
+            IERC20(WA7A5_TOKEN).safeTransfer(recipient, amountOut);
         } else {
             IERC20(WA7A5_TOKEN).safeTransferFrom(msg.sender, address(this), amountIn);
 
@@ -462,9 +465,9 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
             IWA7A5(WA7A5_TOKEN).unwrap(amountIn);
             uint256 received = IERC20(A7A5_TOKEN).balanceOf(address(this)) - a7a5Before;
 
-            uint256 callerBefore = IERC20(A7A5_TOKEN).balanceOf(msg.sender);
-            IERC20(A7A5_TOKEN).safeTransfer(msg.sender, received);
-            amountOut = IERC20(A7A5_TOKEN).balanceOf(msg.sender) - callerBefore;
+            uint256 recipientBefore = IERC20(A7A5_TOKEN).balanceOf(recipient);
+            IERC20(A7A5_TOKEN).safeTransfer(recipient, received);
+            amountOut = IERC20(A7A5_TOKEN).balanceOf(recipient) - recipientBefore;
         }
     }
 
@@ -487,28 +490,31 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
     ///      are unaffected.
     function _applyFot(uint256 amount, uint8 hops) private view returns (uint256) {
         for (uint8 i = 0; i < hops; i++) {
+            // slither-disable-next-line calls-loop
             amount = FACADE.getA7A5EffectiveOutput(amount);
         }
         return amount;
     }
 
-    /// @dev Quotes A7A5 ↔ wA7A5 via wrap/unwrap conversion rates plus FOT deductions.
-    ///      wrap  path (A7A5→wA7A5): two FOT hits before wrap (trader → ParaSwap,
-    ///      then ParaSwap → wrapper inside `wrap`), then getwA7A5ByA7A5.
-    ///      unwrap path (wA7A5→A7A5): getA7A5BywA7A5, then two FOT hits after unwrap
-    ///      (wrapper → ParaSwap, then ParaSwap → user).
+    /// @dev Quotes A7A5 ↔ wA7A5 using the wrapper conversion rate after applying
+    ///      the A7A5 transfer taxes that execution actually incurs. Wrap and unwrap
+    ///      are asymmetric because the wA7A5 wrapper credits/pays on the balance it
+    ///      actually receives:
+    ///      - WRAP  (A7A5 → wA7A5): 1 taxed hop. Only the trader → ParaSwap transfer
+    ///        is taxed; the ParaSwap → wrapper deposit leg is FOT-exempt, so the
+    ///        wrapper mints shares on the full effective input.
+    ///      - UNWRAP (wA7A5 → A7A5): 2 taxed hops. Both the wrapper → ParaSwap
+    ///        withdraw and the ParaSwap → recipient payout are taxed.
     function _quoteFacadeToFacade(
         address tokenIn,
         uint256 amountIn
     ) private view returns (uint256) {
         IWA7A5 wa7a5 = IWA7A5(WA7A5_TOKEN);
         if (tokenIn == A7A5_TOKEN) {
-            // A7A5→wA7A5: two FOT hits — trader → ParaSwap (1), ParaSwap → wrapper (2)
             uint256 effectiveIn = _applyFot(amountIn, 1);
             return wa7a5.getwA7A5ByA7A5(effectiveIn);
         } else {
             uint256 a7a5Out = wa7a5.getA7A5BywA7A5(amountIn);
-            // wA7A5→A7A5: two FOT hits — unwrap transfer to ParaSwap (1), ParaSwap → user (2)
             return _applyFot(a7a5Out, 2);
         }
     }
@@ -517,18 +523,18 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
     ///      *outside* the facade; the facade nets out its own internal hops
     ///      (DIRECT = 1, MIXED = 2) inside getBestQuoteA7A5PerUSDT.
     ///      SELL: 1 external hop (trader → ParaSwap), applied before the facade.
-    ///      BUY:  1 external hop (ParaSwap → user), applied after the facade,
-    ///            independent of the winning strategy.
+    ///      BUY:  no external A7A5 hop because the facade pays the recipient directly.
     function _quoteViaFacadeA7A5(uint256 amountIn, SIDE side) private returns (uint256) {
         if (side == SIDE.SELL) {
             // 1 external FOT hit: trader → ParaSwap.
             uint256 effectiveIn = _applyFot(amountIn, 1);
+            // slither-disable-next-line unused-return
             (uint256 out, ) = FACADE.getBestQuoteA7A5PerUSDT(effectiveIn, SIDE.SELL);
             return out;
         } else {
+            // slither-disable-next-line unused-return
             (uint256 out, ) = FACADE.getBestQuoteA7A5PerUSDT(amountIn, SIDE.BUY);
-            // 1 external FOT hit: ParaSwap → user.
-            return _applyFot(out, 1);
+            return out;
         }
     }
 
@@ -549,6 +555,7 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
             // 1 external FOT hit: trader → ParaSwap. The facade nets out its
             // own internal hops inside getBestQuoteA7A5PerUSDT.
             uint256 effectiveIn = _applyFot(amountIn, 1);
+            // slither-disable-next-line unused-return
             (usdtOut, ) = FACADE.getBestQuoteA7A5PerUSDT(effectiveIn, SIDE.SELL);
         } else {
             usdtOut = FACADE.quoteWA7A5PerUSDT(amountIn, SIDE.SELL);
@@ -565,10 +572,9 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
     ) private returns (uint256) {
         uint256 usdtOut = _quoteV3(tokenIn, USDT_TOKEN, amountIn, fee);
         if (facadeToken == A7A5_TOKEN) {
+            // slither-disable-next-line unused-return
             (uint256 a7a5Out, ) = FACADE.getBestQuoteA7A5PerUSDT(usdtOut, SIDE.BUY);
-            // 1 external FOT hit: ParaSwap → user. The facade nets out its own
-            // internal hops, so this is independent of the winning strategy.
-            return _applyFot(a7a5Out, 1);
+            return a7a5Out;
         } else {
             return FACADE.quoteWA7A5PerUSDT(usdtOut, SIDE.BUY);
         }
@@ -581,6 +587,7 @@ contract ParaSwap is ReentrancyGuard, Ownable2Step, Pausable {
         uint256 amountIn,
         uint24 fee
     ) private returns (uint256 amountOut) {
+        // slither-disable-next-line unused-return
         (amountOut, , , ) = QUOTER.quoteExactInputSingle(
             IQuoterV2.QuoteExactInputSingleParams({
                 tokenIn: tokenIn,

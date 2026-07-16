@@ -70,6 +70,21 @@ describe('A7A5AccountFactoryV2', function () {
     );
   });
 
+  it('rejects zero addresses in the constructor whitelist and creation-time approvals', async function () {
+    const {factory, implAddr, ownerWallet, tokenAAddr, spenderA} = await loadFixture(deployFactoryV2Fixture);
+    const factoryFactory = await ethers.getContractFactory('A7A5AccountFactoryV2');
+    await expect(factoryFactory.deploy(implAddr, [ethers.ZeroAddress])).to.be.revertedWithCustomError(
+      {interface: factoryFactory.interface} as any,
+      'A7A5AccountFactoryV2__ZeroAddress',
+    );
+    await expect(
+      (factory as any).deployAccountWithApprovals(ownerWallet.address, [[ethers.ZeroAddress, spenderA, 1n]]),
+    ).to.be.revertedWithCustomError(factory, 'A7A5AccountFactoryV2__ZeroAddress');
+    await expect(
+      (factory as any).deployAccountWithApprovals(ownerWallet.address, [[tokenAAddr, ethers.ZeroAddress, 1n]]),
+    ).to.be.revertedWithCustomError(factory, 'A7A5AccountFactoryV2__ZeroAddress');
+  });
+
   it('initializeApprovals cannot be replayed after factory seals it', async function () {
     const {factory, ownerWallet, tokenAAddr, spenderA} = await loadFixture(deployFactoryV2Fixture);
     await (factory as any).deployAccountWithApprovals(ownerWallet.address, [[tokenAAddr, spenderA, 1n]]);

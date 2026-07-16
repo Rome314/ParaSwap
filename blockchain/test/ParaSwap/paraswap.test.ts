@@ -722,6 +722,7 @@ describe('ParaSwap', function () {
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, NO_FEE);
       const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
+
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
         .withArgs(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, (v: bigint) => checkRoundingError(v, quoted), traderAddr);

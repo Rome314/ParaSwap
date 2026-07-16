@@ -13,6 +13,7 @@ error A7A5NativeOracle__InvalidPrice();
 error A7A5NativeOracle__IncompleteRound();
 error A7A5NativeOracle__StalePrice(uint256 validUntil, uint256 nowTs);
 error A7A5NativeOracle__StalenessTooLow(uint256 given, uint256 min);
+error A7A5NativeOracle__ZeroAddress();
 
 // ── Events ──────────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,13 @@ contract A7A5NativeOracle is Ownable2Step {
         uint256 maxStaleness_,
         address owner_
     ) Ownable(owner_) {
+        if (
+            address(a7a5Usdt) == address(0) ||
+            address(usdtEth) == address(0) ||
+            address(wa7a5) == address(0)
+        ) {
+            revert A7A5NativeOracle__ZeroAddress();
+        }
         if (maxStaleness_ < MIN_MAX_STALENESS)
             revert A7A5NativeOracle__StalenessTooLow(maxStaleness_, MIN_MAX_STALENESS);
 
@@ -71,7 +79,9 @@ contract A7A5NativeOracle is Ownable2Step {
 
         uint8 twapDec = a7a5Usdt.decimals();
         uint8 feedDec = usdtEth.decimals();
-        uint8 a7a5Dec = IERC20Metadata(wa7a5.A7A5()).decimals();
+        address a7a5 = wa7a5.A7A5();
+        if (a7a5 == address(0)) revert A7A5NativeOracle__ZeroAddress();
+        uint8 a7a5Dec = IERC20Metadata(a7a5).decimals();
 
         A7A5_USDT_DECIMALS = twapDec;
         USDT_ETH_DECIMALS = feedDec;
@@ -97,11 +107,13 @@ contract A7A5NativeOracle is Ownable2Step {
      *      ERC-4337 paymaster validation; the caller should reject the op if `validUntil` has passed.
      */
     function tokenPriceData() public view returns (uint256 price, uint48 validUntil) {
+        // slither-disable-next-line unused-return
         (uint80 roundId, int256 ethPerUsdt, , uint256 updatedAt, uint80 answeredInRound) = USDT_ETH
             .latestRoundData();
         if (answeredInRound < roundId) revert A7A5NativeOracle__IncompleteRound();
         if (ethPerUsdt <= 0) revert A7A5NativeOracle__InvalidPrice();
 
+        // slither-disable-next-line unused-return
         (, int256 usdtPerA7A5, , , ) = A7A5_USDT.latestRoundData();
         if (usdtPerA7A5 <= 0) revert A7A5NativeOracle__InvalidPrice();
 
@@ -116,6 +128,7 @@ contract A7A5NativeOracle is Ownable2Step {
     function tokenPrice() external view returns (uint256 price) {
         uint48 validUntil;
         (price, validUntil) = tokenPriceData();
+        // slither-disable-next-line timestamp
         if (block.timestamp > validUntil)
             revert A7A5NativeOracle__StalePrice(validUntil, block.timestamp);
     }

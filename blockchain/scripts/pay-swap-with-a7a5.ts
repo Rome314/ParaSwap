@@ -53,11 +53,12 @@ async function main() {
     ADDRESSES.SWAP_ROUTER_02,
     ADDRESSES.QUOTER_V2,
     ADDRESSES.V3_FEE_TIER,
+    owner,
   ]);
   await facade.waitForDeployment();
   const facadeAddr = await facade.getAddress();
 
-  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02]);
+  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02, owner]);
   await paraSwap.waitForDeployment();
   const paraSwapAddr = await paraSwap.getAddress();
 
@@ -80,7 +81,7 @@ async function main() {
   await (await new ethers.Contract(ADDRESSES.USDT, ERC20, deployer).approve(facadeAddr, USDT_POKE * 10n)).wait();
   for (let i = 0; i < 3; i++) {
     await networkHelpers.time.increase(45);
-    await (await facade.connect(deployer).swapWA7A5(USDT_POKE, 0, 0n, FAR_DEADLINE)).wait();
+    await (await (facade as any).connect(deployer).swapWA7A5(USDT_POKE, 0, 0n, FAR_DEADLINE)).wait();
   }
 
   const entryPoint = new ethers.Contract(ADDRESSES.ENTRYPOINT_V08, ENTRYPOINT_ABI, deployer);

@@ -76,21 +76,6 @@ function buildSwapCallData(paraSwapAddr: string, tokenIn: string, tokenOut: stri
 }
 
 async function main() {
-  // #region agent log
-  fetch('http://127.0.0.1:7723/ingest/91286a68-cbca-4c42-a1c4-fd2eccc0dee1', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json', 'X-Debug-Session-Id': '021ce4'},
-    body: JSON.stringify({
-      sessionId: '021ce4',
-      runId: 'post-fix',
-      hypothesisId: 'C',
-      location: 'fork-setup-and-demo.ts:main',
-      message: 'fork-setup script reached main()',
-      data: {network: 'localhost'},
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
   const net = await ethers.provider.getNetwork();
   const block = await ethers.provider.getBlockNumber();
   console.log(`\nFork setup: chainId=${net.chainId} block=${block}\n`);
@@ -111,6 +96,7 @@ async function main() {
       ADDRESSES.SWAP_ROUTER_02,
       ADDRESSES.QUOTER_V2,
       ADDRESSES.V3_FEE_TIER,
+      owner,
     ],
     deployer,
   );
@@ -119,7 +105,7 @@ async function main() {
   logStep('PoolsFacade deployed', facadeAddr);
 
   logStep('Deploying ParaSwap');
-  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02]);
+  const paraSwap = await ethers.deployContract('ParaSwap', [facadeAddr, ADDRESSES.SWAP_ROUTER_02, owner]);
   await paraSwap.waitForDeployment();
   const paraSwapAddr = await paraSwap.getAddress();
   logStep('ParaSwap deployed', paraSwapAddr);
@@ -153,7 +139,7 @@ async function main() {
   for (let i = 0; i < 3; i++) {
     await (ethers.provider as any).send('evm_increaseTime', [45]);
     await (ethers.provider as any).send('evm_mine', []);
-    await (await facade.connect(deployer).swapWA7A5(USDT_POKE, 0, 0n, FAR_DEADLINE)).wait();
+    await (await (facade as any).connect(deployer).swapWA7A5(USDT_POKE, 0, 0n, FAR_DEADLINE)).wait();
     logStep('TWAP poke swap', `${i + 1}/3`);
   }
 

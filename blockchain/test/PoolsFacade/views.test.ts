@@ -47,7 +47,7 @@ describe('quote', function () {
     const snap = await zeroV2Reserves(ADDRESSES.V2_PAIR_USDT_A7A5);
     const msg = await revertMsg(facade.quoteA7A5PerUSDT(USDT_IN, SIDE.BUY));
     console.log(`        revert msg: ${msg.slice(0, 80)}`);
-    expect(msg).to.contain('empty reserves');
+    expect(msg).to.contain('EmptyReserves');
     await snap.restore();
   });
 
@@ -260,7 +260,7 @@ describe('allowances', function () {
     expect(await facade.allowanceUSDT(traderAddr)).to.equal(0n);
     const msg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        revert msg: ${msg.slice(0, 80)}`);
-    expect(msg).to.contain('insufficient allowance');
+    expect(msg).to.contain('InsufficientAllowance');
   });
 
   it("swapA7A5 BUY: reverts 'insufficient allowance' when USDT allowance is amountIn − 1", async () => {
@@ -270,7 +270,7 @@ describe('allowances', function () {
     await (usdt.connect(trader) as any).approve(facadeAddr, USDT_IN - 1n);
     const msg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        allowance = USDT_IN-1 → revert: ${msg.slice(0, 80)}`);
-    expect(msg).to.contain('insufficient allowance');
+    expect(msg).to.contain('InsufficientAllowance');
   });
 
   it("swapA7A5 SELL: reverts 'insufficient allowance' when A7A5 allowance is 0 or amountIn − 1", async () => {
@@ -281,12 +281,12 @@ describe('allowances', function () {
     expect(await facade.allowanceA7A5(traderAddr)).to.equal(0n);
     const zeroMsg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        zero allowance revert:    ${zeroMsg.slice(0, 80)}`);
-    expect(zeroMsg).to.contain('insufficient allowance');
+    expect(zeroMsg).to.contain('InsufficientAllowance');
 
     await (a7a5.connect(trader) as any).approve(facadeAddr, A7A5_IN - 1n);
     const partialMsg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        partial allowance revert: ${partialMsg.slice(0, 80)}`);
-    expect(partialMsg).to.contain('insufficient allowance');
+    expect(partialMsg).to.contain('InsufficientAllowance');
   });
 
   it("swapWA7A5 BUY: reverts 'insufficient allowance' when USDT allowance is 0 or amountIn − 1", async () => {
@@ -297,12 +297,12 @@ describe('allowances', function () {
     expect(await facade.allowanceUSDT(traderAddr)).to.equal(0n);
     const zeroMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        zero allowance revert:    ${zeroMsg.slice(0, 80)}`);
-    expect(zeroMsg).to.contain('insufficient allowance');
+    expect(zeroMsg).to.contain('InsufficientAllowance');
 
     await (usdt.connect(trader) as any).approve(facadeAddr, USDT_IN - 1n);
     const partialMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        partial allowance revert: ${partialMsg.slice(0, 80)}`);
-    expect(partialMsg).to.contain('insufficient allowance');
+    expect(partialMsg).to.contain('InsufficientAllowance');
   });
 
   it("swapWA7A5 SELL: reverts 'insufficient allowance' when wA7A5 allowance is 0 or amountIn − 1", async () => {
@@ -319,12 +319,12 @@ describe('allowances', function () {
     expect(await facade.allowanceWA7A5(traderAddr)).to.equal(0n);
     const zeroMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(wa7a5Bal, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        zero allowance revert:    ${zeroMsg.slice(0, 80)}`);
-    expect(zeroMsg).to.contain('insufficient allowance');
+    expect(zeroMsg).to.contain('InsufficientAllowance');
 
     await (wa7a5.connect(trader) as any).approve(facadeAddr, wa7a5Bal - 1n);
     const partialMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(wa7a5Bal, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        partial allowance revert: ${partialMsg.slice(0, 80)}`);
-    expect(partialMsg).to.contain('insufficient allowance');
+    expect(partialMsg).to.contain('InsufficientAllowance');
   });
 
   it('swapA7A5 BUY: exact USDT allowance == amountIn → swap succeeds (guard threshold is >=)', async () => {

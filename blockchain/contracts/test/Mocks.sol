@@ -9,6 +9,8 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract MockChainlinkFeed {
     int256 public answer;
     uint256 public updatedAt;
+    uint80 public roundId = 1;
+    uint80 public answeredInRound = 1;
     uint8 private _dec;
 
     constructor(int256 answer_, uint256 updatedAt_, uint8 dec_) {
@@ -23,6 +25,10 @@ contract MockChainlinkFeed {
     function setUpdatedAt(uint256 v) external {
         updatedAt = v;
     }
+    function setRound(uint80 roundId_, uint80 answeredInRound_) external {
+        roundId = roundId_;
+        answeredInRound = answeredInRound_;
+    }
 
     function decimals() external view returns (uint8) {
         return _dec;
@@ -35,11 +41,11 @@ contract MockChainlinkFeed {
     }
 
     function getRoundData(uint80) external view returns (uint80, int256, uint256, uint256, uint80) {
-        return (1, answer, block.timestamp, updatedAt, 1);
+        return (roundId, answer, block.timestamp, updatedAt, answeredInRound);
     }
 
     function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80) {
-        return (1, answer, block.timestamp, updatedAt, 1);
+        return (roundId, answer, block.timestamp, updatedAt, answeredInRound);
     }
 }
 
@@ -118,6 +124,7 @@ contract MockPool {
     address public token0;
     address public token1;
     int56[2] private _cumulatives;
+    bool public observeReverts;
 
     constructor(address t0, address t1) {
         token0 = t0;
@@ -128,10 +135,14 @@ contract MockPool {
         _cumulatives[0] = older;
         _cumulatives[1] = newer;
     }
+    function setObserveReverts(bool value) external {
+        observeReverts = value;
+    }
 
     function observe(
         uint32[] calldata
     ) external view returns (int56[] memory ticks, uint160[] memory liq) {
+        require(!observeReverts, "OLD");
         ticks = new int56[](2);
         ticks[0] = _cumulatives[0];
         ticks[1] = _cumulatives[1];

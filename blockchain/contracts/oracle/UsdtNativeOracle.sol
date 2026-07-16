@@ -9,6 +9,7 @@ error UsdtNativeOracle__InvalidPrice();
 error UsdtNativeOracle__IncompleteRound();
 error UsdtNativeOracle__StalePrice(uint256 validUntil, uint256 nowTs);
 error UsdtNativeOracle__StalenessTooLow(uint256 given, uint256 min);
+error UsdtNativeOracle__ZeroAddress();
 
 event UsdtMaxStalenessUpdated(uint256 oldMaxStaleness, uint256 newMaxStaleness);
 
@@ -36,6 +37,7 @@ contract UsdtNativeOracle is Ownable2Step {
         uint256 maxStaleness_,
         address owner_
     ) Ownable(owner_) {
+        if (address(usdtEth) == address(0)) revert UsdtNativeOracle__ZeroAddress();
         if (maxStaleness_ < MIN_MAX_STALENESS)
             revert UsdtNativeOracle__StalenessTooLow(maxStaleness_, MIN_MAX_STALENESS);
 
@@ -55,6 +57,7 @@ contract UsdtNativeOracle is Ownable2Step {
     }
 
     function tokenPriceData() public view returns (uint256 price, uint48 validUntil) {
+        // slither-disable-next-line unused-return
         (uint80 roundId, int256 ethPerUsdt, , uint256 updatedAt, uint80 answeredInRound) = USDT_ETH
             .latestRoundData();
         if (answeredInRound < roundId) revert UsdtNativeOracle__IncompleteRound();
@@ -69,6 +72,7 @@ contract UsdtNativeOracle is Ownable2Step {
     function tokenPrice() external view returns (uint256 price) {
         uint48 validUntil;
         (price, validUntil) = tokenPriceData();
+        // slither-disable-next-line timestamp
         if (block.timestamp > validUntil)
             revert UsdtNativeOracle__StalePrice(validUntil, block.timestamp);
     }

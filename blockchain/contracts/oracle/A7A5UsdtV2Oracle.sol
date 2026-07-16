@@ -13,6 +13,7 @@ error A7A5UsdtV2Oracle__PairMismatch();
 error A7A5UsdtV2Oracle__EmptyReserves();
 error A7A5UsdtV2Oracle__InsufficientLiquidity();
 error A7A5UsdtV2Oracle__NoHistoricalData();
+error A7A5UsdtV2Oracle__ZeroAddress();
 
 /**
  * @title A7A5UsdtV2Oracle
@@ -51,6 +52,9 @@ contract A7A5UsdtV2Oracle is AggregatorV3Interface {
      * @param usdt  USDT token address (the other pair token).
      */
     constructor(IUniswapV2Pair pair, address a7a5, address usdt, uint256 minReserveA7A5_) {
+        if (address(pair) == address(0) || a7a5 == address(0) || usdt == address(0)) {
+            revert A7A5UsdtV2Oracle__ZeroAddress();
+        }
         address t0 = pair.token0();
         address t1 = pair.token1();
         if (!((t0 == a7a5 && t1 == usdt) || (t0 == usdt && t1 == a7a5))) {
@@ -70,6 +74,7 @@ contract A7A5UsdtV2Oracle is AggregatorV3Interface {
 
     /// @notice USDT per A7A5, scaled by 1e8. Reverts if A7A5 reserve is empty.
     function latestAnswer() public view returns (uint256 priceUsdtPerA7A5) {
+        // slither-disable-next-line unused-return
         (uint112 reserve0, uint112 reserve1, ) = PAIR.getReserves();
 
         (uint256 reserveA7A5, uint256 reserveUSDT) = A7A5_IS_TOKEN0

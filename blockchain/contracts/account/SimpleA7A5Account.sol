@@ -58,7 +58,8 @@ contract SimpleA7A5Account is IAccount {
         if (missingAccountFunds != 0) {
             // Best-effort top-up of the EntryPoint; failures are surfaced by the EntryPoint itself.
             (bool ok, ) = msg.sender.call{value: missingAccountFunds}("");
-            ok; // silence unused; EntryPoint reverts on genuine shortfall
+            // slither-disable-next-line redundant-statements
+            ok; // silence unused variable; EntryPoint reverts on genuine shortfall
         }
     }
 
@@ -70,12 +71,15 @@ contract SimpleA7A5Account is IAccount {
     ) external returns (bytes memory) {
         if (msg.sender != address(ENTRY_POINT) && msg.sender != owner)
             revert SimpleA7A5Account__NotOwnerOrEntryPoint();
+        if (target == address(0)) revert SimpleA7A5Account__ZeroAddress();
+        // slither-disable-next-line low-level-calls
         (bool ok, bytes memory ret) = target.call{value: value}(data);
         if (!ok) {
             assembly {
                 revert(add(ret, 0x20), mload(ret))
             }
         }
+        // slither-disable-next-line reentrancy-events
         emit Executed(target, value, data);
         return ret;
     }

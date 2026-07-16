@@ -28,6 +28,7 @@ contract A7A5AccountFactoryV2 {
 
     error A7A5AccountFactoryV2__InvalidImplementation();
     error A7A5AccountFactoryV2__SpenderNotAllowed(address spender);
+    error A7A5AccountFactoryV2__ZeroAddress();
 
     event SpenderWhitelisted(address indexed spender);
 
@@ -35,6 +36,7 @@ contract A7A5AccountFactoryV2 {
         if (impl_.code.length == 0) revert A7A5AccountFactoryV2__InvalidImplementation();
         _impl = impl_;
         for (uint256 i; i < allowedSpenders_.length; ++i) {
+            if (allowedSpenders_[i] == address(0)) revert A7A5AccountFactoryV2__ZeroAddress();
             isAllowedSpender[allowedSpenders_[i]] = true;
             emit SpenderWhitelisted(allowedSpenders_[i]);
         }
@@ -80,6 +82,9 @@ contract A7A5AccountFactoryV2 {
         TokenApproval[] memory approvals
     ) public returns (address) {
         for (uint256 i; i < approvals.length; ++i) {
+            if (approvals[i].token == address(0) || approvals[i].spender == address(0)) {
+                revert A7A5AccountFactoryV2__ZeroAddress();
+            }
             if (!isAllowedSpender[approvals[i].spender]) {
                 revert A7A5AccountFactoryV2__SpenderNotAllowed(approvals[i].spender);
             }

@@ -53,19 +53,19 @@ describe('PoolsFacade (mainnet fork)', function () {
         ['WA7A5', (await facade.WA7A5()).toLowerCase(), ADDRESSES.WA7A5.toLowerCase()],
         ['A7A5', (await facade.A7A5()).toLowerCase(), ADDRESSES.A7A5.toLowerCase()],
         ['USDT', (await facade.USDT()).toLowerCase(), ADDRESSES.USDT.toLowerCase()],
-        ['v2Pair', (await facade.v2Pair()).toLowerCase(), ADDRESSES.V2_PAIR_USDT_A7A5.toLowerCase()],
-        ['v3Router', (await facade.v3Router()).toLowerCase(), ADDRESSES.SWAP_ROUTER_02.toLowerCase()],
-        ['v3Quoter', (await facade.v3Quoter()).toLowerCase(), ADDRESSES.QUOTER_V2.toLowerCase()],
+        ['V2_PAIR', (await facade.V2_PAIR()).toLowerCase(), ADDRESSES.V2_PAIR_USDT_A7A5.toLowerCase()],
+        ['V3_ROUTER', (await facade.V3_ROUTER()).toLowerCase(), ADDRESSES.SWAP_ROUTER_02.toLowerCase()],
+        ['V3_QUOTER', (await facade.V3_QUOTER()).toLowerCase(), ADDRESSES.QUOTER_V2.toLowerCase()],
       ];
       for (const [name, actual, expected] of checks) {
         console.log(`        ${name.padEnd(12)} ${actual}`);
         expect(actual, name).to.equal(expected);
       }
-      const fee = await facade.wa7a5UsdtV3Fee();
-      console.log(`        wa7a5UsdtV3Fee  ${fee}`);
+      const fee = await facade.WA7A5_USDT_V3_FEE();
+      console.log(`        WA7A5_USDT_V3_FEE  ${fee}`);
       expect(fee).to.equal(BigInt(ADDRESSES.V3_FEE_TIER));
-      const isToken0: boolean = await facade.v2A7A5IsToken0();
-      console.log(`        v2A7A5IsToken0  ${isToken0}`);
+      const isToken0: boolean = await facade.V2_A7A5_IS_TOKEN0();
+      console.log(`        V2_A7A5_IS_TOKEN0  ${isToken0}`);
       const {reserveA7A5, reserveUsdt} = await readV2Reserves(provider, ADDRESSES.V2_PAIR_USDT_A7A5);
       console.log(`        V2 reserves     A7A5=${ethers.formatUnits(reserveA7A5, 6)}  USDT=${ethers.formatUnits(reserveUsdt, 6)}`);
       expect(typeof isToken0).to.equal('boolean');
