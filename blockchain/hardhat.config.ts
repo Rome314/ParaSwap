@@ -31,8 +31,24 @@ const ozCommunityRemappingFix: HardhatPlugin = {
 // Accept either an explicit full URL or just the API key (derive the mainnet URL).
 // Blank env placeholders (`ALCHEMY_RPC_URL=`) must not block API-key fallback — use `||`, not `??`.
 const ALCHEMY_KEY = process.env.ALCHEMY_API_KEY?.trim() ?? '';
-const FORK_URL = process.env.ALCHEMY_RPC_URL?.trim() || (ALCHEMY_KEY ? `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}` : '');
+const FORK_URL =
+  process.env.MAINNET_RPC_URL?.trim() ||
+  process.env.ALCHEMY_RPC_URL?.trim() ||
+  (ALCHEMY_KEY ? `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}` : '');
 const SEPOLIA_URL = process.env.SEPOLIA_RPC_URL?.trim() || (ALCHEMY_KEY ? `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}` : '');
+const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY?.trim() ?? '';
+
+const networkFlag = process.argv.indexOf('--network');
+const selectedNetwork = networkFlag === -1 ? undefined : process.argv[networkFlag + 1];
+if (selectedNetwork === 'mainnet' && !FORK_URL) {
+  throw new Error('MAINNET_RPC_URL (or ALCHEMY_RPC_URL/ALCHEMY_API_KEY) is required for mainnet');
+}
+if (selectedNetwork === 'sepolia' && !SEPOLIA_URL) {
+  throw new Error('SEPOLIA_RPC_URL (or ALCHEMY_API_KEY) is required for Sepolia');
+}
+if ((selectedNetwork === 'mainnet' || selectedNetwork === 'sepolia') && !DEPLOYER_PRIVATE_KEY) {
+  throw new Error(`DEPLOYER_PRIVATE_KEY is required for ${selectedNetwork}`);
+}
 
 // Optional: pin to a block for deterministic fork tests (reproducible whale
 // balances / pool state). Override with FORK_BLOCK; leave unset to use latest.
@@ -42,8 +58,8 @@ const config: HardhatUserConfig = {
   plugins: [ozCommunityRemappingFix, HardhatToolboxMochaEthers],
   solidity: {
     compilers: [
-      {version: '0.8.22', settings: {optimizer: {enabled: true, runs: 200}}},
-      {version: '0.8.27', settings: {optimizer: {enabled: true, runs: 200}}},
+      {version: '0.8.22', settings: {optimizer: {enabled: true, runs: 200}, outputSelection: {'*': {'*': ['storageLayout']}}}},
+      {version: '0.8.27', settings: {optimizer: {enabled: true, runs: 200}, outputSelection: {'*': {'*': ['storageLayout']}}}},
     ],
   },
   networks: {
@@ -75,26 +91,19 @@ const config: HardhatUserConfig = {
       // Both Ganache and Hardhat node handle eth_sendTransaction natively for their own accounts.
       accounts: 'remote',
     },
-    // Truffle Dashboard signs transactions via MetaMask — no private key needed.
-    // Run `npm run dashboard:open`, then use --network truffle-dashboard for Ignition deploys.
-    // Do NOT use this network for fork-setup-and-demo.ts (requires evm_* methods unavailable via Dashboard).
-    'truffle-dashboard': {
-      type: 'http',
-      chainType: 'l1',
-      url: 'http://localhost:24012/rpc',
-    },
     mainnet: {
       type: 'http',
       chainType: 'l1',
-      url: FORK_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo',
-      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      url: FORK_URL || 'http://127.0.0.1:8545',
+      chainId: 1,
+      accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : [],
     },
     sepolia: {
       type: 'http',
       chainType: 'l1',
-      url: SEPOLIA_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo',
+      url: SEPOLIA_URL || 'http://127.0.0.1:8545',
       chainId: 11155111,
-      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+      accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : [],
     },
   },
   verify: {

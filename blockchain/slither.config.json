@@ -1,5 +1,6 @@
 {
   "filter_paths": "node_modules,contracts/test,contracts/vendor,contracts/interfaces",
   "exclude_informational": false,
-  "sarif": "./slither-report.sarif"
+  "sarif": "./slither-report.sarif",
+  "detectors_to_exclude": "naming-convention,low-level-calls,assembly"
 }

@@ -13,7 +13,8 @@ export default buildModule('SepoliaMocks', (m) => {
 
   // ~1/2500 ETH per USDT (18 decimals) — same order of magnitude as mainnet feed.
   const ethPerUsdt = m.getParameter('ethPerUsdt', '400000000000000');
-  const feedUpdatedAt = m.getParameter('feedUpdatedAt', '1704067200');
+  // Required at deployment time. The predeploy script reads the current Sepolia block timestamp.
+  const feedUpdatedAt = m.getParameter('feedUpdatedAt');
   const usdtEthFeed = m.contract('MockChainlinkFeed', [ethPerUsdt, feedUpdatedAt, 18], {id: 'MockUsdtEthFeed'});
 
   return {a7a5, usdt, wa7a5, pool, usdtEthFeed};

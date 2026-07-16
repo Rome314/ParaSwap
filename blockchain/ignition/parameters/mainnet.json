@@ -1,31 +1,10 @@
 {
   "OracleStack": {
-    "modulePath": "./ignition/modules/OracleStack.ts",
-    "parameters": {
-      "minReserveA7A5": "1000000000"
-    }
-  },
-  "SwapStack": {
-    "modulePath": "./ignition/modules/SwapStack.ts",
-    "parameters": {
-      "swapOwner": "<MULTISIG_ADDRESS>"
-    }
+    "twapWindow": 1800,
+    "maxStaleness": 86400
   },
   "Paymasters": {
-    "modulePath": "./ignition/modules/Paymasters.ts",
-    "parameters": {
-      "depositWei": "5000000000000000000",
-      "stakeWei": "1000000000000000000"
-    }
-  },
-  "AccountSystem": {
-    "modulePath": "./ignition/modules/AccountSystem.ts"
-  },
-  "A7A5AA": {
-    "modulePath": "./ignition/modules/A7A5AA.ts",
-    "parameters": {
-      "depositEth": "5",
-      "stakeEth": "1"
-    }
+    "depositWei": "5000000000000000000",
+    "stakeWei": "1000000000000000000"
   }
 }

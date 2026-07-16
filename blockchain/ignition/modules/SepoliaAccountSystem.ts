@@ -1,5 +1,5 @@
 import {buildModule} from '@nomicfoundation/hardhat-ignition/modules';
-import {ADDRESSES} from '../../common/addresses.js';
+import {SEPOLIA_ADDRESSES} from '../../common/addresses-sepolia.js';
 import SepoliaPaymasters from './SepoliaPaymasters.js';
 
 /**
@@ -7,7 +7,7 @@ import SepoliaPaymasters from './SepoliaPaymasters.js';
  * creation-time approval whitelist only contains the two paymasters.
  */
 export default buildModule('SepoliaAccountSystem', (m) => {
-  const entryPoint = m.getParameter('entryPoint', ADDRESSES.ENTRYPOINT_V08);
+  const entryPoint = m.getParameter('entryPoint', SEPOLIA_ADDRESSES.ENTRYPOINT_V08);
 
   const {a7a5Paymaster, usdtPaymaster} = m.useModule(SepoliaPaymasters);
 

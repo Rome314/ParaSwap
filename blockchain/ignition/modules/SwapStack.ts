@@ -9,10 +9,14 @@ export default buildModule('SwapStack', (m) => {
   const swapRouter = m.getParameter('swapRouter02', ADDRESSES.SWAP_ROUTER_02);
   const quoter = m.getParameter('quoterV2', ADDRESSES.QUOTER_V2);
   const feeTier = m.getParameter('v3FeeTier', ADDRESSES.V3_FEE_TIER);
-  const owner = m.getParameter('swapOwner');
+  const deployer = m.getAccount(0);
+  const productionOwner = m.getParameter('productionOwner');
 
-  const facade = m.contract('PoolsFacade', [wa7a5, a7a5, usdt, v2Pair, swapRouter, quoter, feeTier, owner]);
-  const paraSwap = m.contract('ParaSwap', [facade, swapRouter, owner]);
+  const facade = m.contract('PoolsFacade', [wa7a5, a7a5, usdt, v2Pair, swapRouter, quoter, feeTier, deployer]);
+  const paraSwap = m.contract('ParaSwap', [facade, swapRouter, deployer]);
+
+  m.call(facade, 'transferOwnership', [productionOwner], {id: 'TransferPoolsFacadeOwnership'});
+  m.call(paraSwap, 'transferOwnership', [productionOwner], {id: 'TransferParaSwapOwnership'});
 
   return {facade, paraSwap};
 });
