@@ -53,6 +53,14 @@ if ((selectedNetwork === 'mainnet' || selectedNetwork === 'sepolia') && !DEPLOYE
 // Optional: pin to a block for deterministic fork tests (reproducible whale
 // balances / pool state). Override with FORK_BLOCK; leave unset to use latest.
 const FORK_BLOCK = process.env.FORK_BLOCK ? Number(process.env.FORK_BLOCK) : undefined;
+const forkEnabled = process.env.MAINNET_FORK === '1';
+const validForkBlock = FORK_BLOCK !== undefined && Number.isSafeInteger(FORK_BLOCK) && FORK_BLOCK > 0;
+if (forkEnabled && !FORK_URL) {
+  throw new Error('MAINNET_FORK=1 requires MAINNET_RPC_URL, ALCHEMY_RPC_URL, or ALCHEMY_API_KEY');
+}
+if (process.env.REQUIRE_FORK_TESTS === '1' && (!forkEnabled || !validForkBlock)) {
+  throw new Error('Required fork checks need MAINNET_FORK=1 and a positive pinned FORK_BLOCK');
+}
 
 const config: HardhatUserConfig = {
   plugins: [ozCommunityRemappingFix, HardhatToolboxMochaEthers],
@@ -70,7 +78,7 @@ const config: HardhatUserConfig = {
       // real Uniswap pools are available for impersonation-funded fork tests.
       chainId: 1,
       blockGasLimit: 30_000_000,
-      ...(FORK_URL
+      ...(forkEnabled
         ? {
             forking: {
               url: FORK_URL,

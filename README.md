@@ -1,101 +1,46 @@
-# A7A5 Swap — V0 Prototype
+# ParaSwap / A7A5 Swap
 
-Ethereum-only prototype for the A7A5 / wA7A5 / USDT swap UX. Designed against ADR-001.
+Ethereum swap and account-abstraction prototype for A7A5, wA7A5, and USDT, with a separate Tron wallet adapter. Includes Solidity routers, smart accounts, paymasters and oracles, a React application, shared contract exports, a small Go metadata service, and a Graph indexer scaffold.
 
-No production backend yet — the UI reads on-chain state via ethers + Multicall3. Quotes come from the Uniswap Routing API in the browser. A minimal **Go** `backend/` HTTP stub and `subgraph/` scaffold are included for future indexer/API work.
+## Start locally
 
-## Monorepo layout
+Use Node from `.nvmrc`, npm 11, Go 1.22+, and Python 3.10+. Go checks were exercised with Go 1.27.3. Run npm commands from this directory:
 
-```
-package.json              npm workspaces root
-blockchain/                 Hardhat 3 contracts + fork tests
-frontend/                 React + Vite + wagmi
-packages/contracts/         @para-swap/contracts — shared ABIs + addresses
-subgraph/                   The Graph indexer scaffold
-backend/                    Go HTTP stub (reads synced ABIs + addresses.json)
-docs/                       Permit2 explainer
+```sh
+nvm use
+npm ci
+npm run check
+npm run dev -w para-swap-frontend
 ```
 
-See [`docs/account-abstraction/README.md`](docs/account-abstraction/README.md) for the ERC-4337 passkey + token paymaster stack.
+The app opens at `http://localhost:5173`; `/debug` and `/contracts` contain development dashboards. Interactive chain reads and wallet flows need local configuration. Create `frontend/.env.local` from the root `.env.example` without overwriting existing configuration. Use `blockchain/.env.example` for separately authorized fork/deployment work. Local verification bypasses operator dotenv files and needs no RPC credentials.
 
-## Quickstart (Docker Compose)
+`npm run check` builds contracts, exports/syncs ABIs, builds the shared package and UI, typechecks contract tooling/tests, runs local contract and harness tests, checks the Go stub, and builds the subgraph. Pending fork cases do not establish mainnet behavior.
 
-1. Copy env template and fill in your Alchemy key:
-   ```bash
-   cp .env.example .env
-   ```
-2. Build shared contract artifacts (required before frontend / Go backend):
-   ```bash
-   npm install
-   npm run build:contracts   # also syncs backend/contracts/
-   ```
-3. Launch:
-   ```bash
-   docker compose up --build
-   ```
-4. Open http://localhost:5173.
+## Repository map
 
-## Local development
-
-```bash
-npm install
-npm run build:contracts   # hardhat compile + export ABIs to @para-swap/contracts
-cd frontend && npm run dev
+```text
+frontend/             React, Vite, wagmi/ethers; main, debug, and contract dashboards
+blockchain/           Hardhat contracts, tests, chain helpers, and Ignition modules
+packages/contracts/   Shared addresses and generated/maintained ABI exports
+backend/              Go metadata stub; generated contract snapshots
+subgraph/             Graph schema, handlers, and local indexer configuration
+scripts/              Preflight and isolated local check runner
+docs/                 Navigation, commands, review, and recovery instructions
+.harness2/            Baseline/probe evidence and bounded workflow lessons
 ```
 
-## Contracts (fork tests)
+Use the single root `package-lock.json`. Package-local npm/pnpm lockfiles and old dependency folders are preserved in recovery snapshots outside the active checkout.
 
-```bash
-cd blockchain
-ALCHEMY_RPC_URL=… npm test
-```
+## Guides
 
-`npm run build:contracts` from the repo root compiles project + `a7a5` npm token contracts, syncs ABIs into `packages/contracts`, and copies artifacts to `backend/contracts/` for the Go service.
+- [Project map and ownership](docs/PROJECT_MAP.md)
+- [Commands and verification boundaries](docs/COMMANDS.md)
+- [Review and next priorities](docs/PROJECT_REVIEW.md)
+- [Worktree recovery](docs/WORKTREES.md)
+- [Contract architecture](blockchain/docs/ARCHITECTURE.md)
+- [Contract API reference](blockchain/docs/CONTRACTS.md)
+- [Account-abstraction guides](docs/account-abstraction/README.md)
+- [Permit2 model](docs/PERMIT2.md)
 
-## Backend (Go)
-
-```bash
-npm run build:contracts   # sync ABIs + addresses.json
-cd backend && go run .
-```
-
-See [backend/README.md](backend/README.md).
-
-## Subgraph
-
-```bash
-npm run subgraph:codegen
-npm run subgraph:build
-cd subgraph && docker compose up -d && npm run deploy-local
-```
-
-Set `PARASWAP_ADDRESS` and `POOLS_FACADE_ADDRESS` in `subgraph/networks.json` after deploy. See [subgraph/README.md](subgraph/README.md).
-
-npm install
-ALCHEMY_API_KEY=… A7A5_ADDRESS=0x… WA7A5_ADDRESS=0x… \
-  A7A5_WHALE=0x… WA7A5_WHALE=0x… MAINNET_FORK=1 npm test
-```
-
-Account-abstraction fork suite:
-
-```bash
-cd blockchain
-MAINNET_FORK=1 ALCHEMY_API_KEY=… npm run test:fork:aa
-```
-
-## What the UI does
-
-| Section | What it does |
-|---|---|
-| **Wallet** | Shows ETH, A7A5, wA7A5, USDT balances. Warns if A7A5 is paused or address is blacklisted. Displays current transfer fee (basisPointsRate). |
-| **Passkey** | WebAuthn smart account tab — counterfactual address, ERC-4337 config (when env vars set). |
-| **Wrap / Unwrap** | `A7A5.approve(wA7A5)` → `wA7A5.wrap(amount)` or `wA7A5.unwrap(amount)`. |
-| **Swap** | Quote → `token.approve(Permit2, MAX)` (once) → `Permit2.approve(UR, MAX, expiry)` (once) → `UniversalRouter.execute`. A7A5→USDT via V2; wA7A5→USDT via V3. |
-
-See [`docs/PERMIT2.md`](docs/PERMIT2.md) for the approval model.
-
-## Scope (V0)
-
-- Ethereum only — all UI copy says "Ethereum".
-- No smart routing — user picks A7A5 (V2) or wA7A5 (V3) manually.
-- ERC-4337: WebAuthn account + A7A5/USDT paymasters (no Gas Manager). Tron remains separate.
+Agents start with [AGENTS.md](AGENTS.md) and the scoped guide in their package. Root `CLAUDE.md` and the Cursor rule point to that shared contract. The existing Docker configuration still needs modernization for the workspace layout; use the local commands above as the development entry point.

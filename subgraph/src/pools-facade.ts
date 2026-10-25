@@ -22,7 +22,7 @@ export function handleWA7A5Swapped(event: WA7A5Swapped): void {
   swap.path = 'WA7A5';
   swap.user = event.params.user;
   swap.side = event.params.side;
-  swap.strategy = null;
+  swap.unset('strategy');
   swap.amountIn = event.params.amountIn;
   swap.amountOut = event.params.amountOut;
   swap.blockNumber = event.block.number;

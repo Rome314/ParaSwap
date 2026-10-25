@@ -41,7 +41,7 @@ export function DebugDashboard() {
       </header>
 
       <main className="mx-auto max-w-5xl p-4">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as DebugTab)}>
+        <Tabs value={tab} onValueChange={(v: string) => setTab(v as DebugTab)}>
           <TabsList className="mb-4 flex flex-wrap h-auto">
             <TabsTrigger value="fork">Fork Status</TabsTrigger>
             <TabsTrigger value="account">Smart Account</TabsTrigger>

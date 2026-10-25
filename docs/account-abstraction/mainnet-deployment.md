@@ -49,7 +49,7 @@ npm run deploy:sepolia
 Equivalent command:
 
 ```bash
-hardhat ignition deploy ignition/modules/A7A5AA_Sepolia.ts \
+hardhat ignition deploy ignition/modules/sepolia/A7A5AA_Sepolia.ts \
   --network sepolia \
   --parameters ignition/parameters/sepolia.json \
   --verify

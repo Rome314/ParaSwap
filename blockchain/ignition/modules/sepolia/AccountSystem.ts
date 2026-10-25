@@ -1,6 +1,6 @@
 import {buildModule} from '@nomicfoundation/hardhat-ignition/modules';
-import {SEPOLIA_ADDRESSES} from '../../common/addresses-sepolia.js';
-import SepoliaPaymasters from './SepoliaPaymasters.js';
+import {SEPOLIA_ADDRESSES} from '../../../common/addresses-sepolia.js';
+import SepoliaPaymasters from './Paymasters.js';
 
 /**
  * Sepolia account system: SwapStack is omitted (no A7A5 liquidity), so the factory's

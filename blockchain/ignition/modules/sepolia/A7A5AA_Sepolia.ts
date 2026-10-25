@@ -1,7 +1,7 @@
 import {buildModule} from '@nomicfoundation/hardhat-ignition/modules';
-import SepoliaOracleStack from './SepoliaOracleStack.js';
-import SepoliaPaymasters from './SepoliaPaymasters.js';
-import SepoliaAccountSystem from './SepoliaAccountSystem.js';
+import SepoliaOracleStack from './OracleStack.ts';
+import SepoliaPaymasters from './Paymasters.ts';
+import SepoliaAccountSystem from './AccountSystem.ts';
 
 /**
  * Sepolia AA stack: mock-backed oracles + ERC-20 paymasters + WebAuthn factory.

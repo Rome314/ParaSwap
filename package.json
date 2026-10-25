@@ -8,16 +8,23 @@
     "subgraph"
   ],
   "scripts": {
-    "postinstall": "node scripts/patch-ethereum-cryptography.cjs",
-    "build:contracts": "npm run build -w @para-swap/contracts && npm run build -w para-swap-contracts && npm run build -w @para-swap/contracts",
+    "build:contracts": "npm run build -w para-swap-contracts && npm run build -w @para-swap/contracts",
     "build": "npm run build:contracts && npm run build -w para-swap-frontend",
     "subgraph:sync-abis": "npm run sync-abis -w para-swap-subgraph",
     "subgraph:codegen": "npm run sync-abis -w para-swap-subgraph && npm run codegen -w para-swap-subgraph",
     "subgraph:build": "npm run subgraph:codegen && npm run build -w para-swap-subgraph",
-    "subgraph:deploy": "npm run deploy:studio -w para-swap-subgraph"
+    "subgraph:deploy": "npm run deploy:studio -w para-swap-subgraph",
+    "doctor": "python3 scripts/preflight.py",
+    "check:harness": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -v && node --test scripts/tests/*.test.mjs",
+    "typecheck:contracts": "npm exec -w para-swap-contracts --no -- tsc --noEmit",
+    "test": "npm run test:unit",
+    "test:unit": "npm run test -w para-swap-contracts",
+    "test:fork": "npm run test:predeploy -w para-swap-contracts",
+    "check:backend": "cd backend && go test ./... && go vet ./...",
+    "check": "npm run doctor && npm run check:harness && npm run build && npm run typecheck:contracts && npm run test:unit && npm run check:backend && npm run subgraph:build"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3"
+    "@types/node": "25.9.3"
   },
   "overrides": {
     "undici": "$undici",
@@ -26,6 +33,11 @@
     }
   },
   "dependencies": {
-    "undici": "^6.21.3"
+    "undici": "6.21.3"
+  },
+  "packageManager": "npm@11.19.1",
+  "engines": {
+    "node": ">=24.22.1 <25",
+    "npm": ">=11 <12"
   }
 }

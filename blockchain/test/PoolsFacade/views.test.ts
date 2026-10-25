@@ -258,7 +258,7 @@ describe('allowances', function () {
     console.log('\n  ── Guard: swapA7A5 BUY zero allowance ──────────────');
     const {facade, trader, traderAddr} = await loadFixture(deployFacadeFixture);
     expect(await facade.allowanceUSDT(traderAddr)).to.equal(0n);
-    const msg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
+    const msg = await revertMsg(facade.connect(trader)['swapA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        revert msg: ${msg.slice(0, 80)}`);
     expect(msg).to.contain('InsufficientAllowance');
   });
@@ -268,7 +268,7 @@ describe('allowances', function () {
     const {facade, facadeAddr, trader} = await loadFixture(deployFacadeFixture);
     const {usdt} = tokens();
     await (usdt.connect(trader) as any).approve(facadeAddr, USDT_IN - 1n);
-    const msg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
+    const msg = await revertMsg(facade.connect(trader)['swapA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        allowance = USDT_IN-1 → revert: ${msg.slice(0, 80)}`);
     expect(msg).to.contain('InsufficientAllowance');
   });
@@ -279,12 +279,12 @@ describe('allowances', function () {
     const {a7a5} = tokens();
 
     expect(await facade.allowanceA7A5(traderAddr)).to.equal(0n);
-    const zeroMsg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
+    const zeroMsg = await revertMsg(facade.connect(trader)['swapA7A5(uint256,uint8,uint256,uint256)'].staticCall(A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        zero allowance revert:    ${zeroMsg.slice(0, 80)}`);
     expect(zeroMsg).to.contain('InsufficientAllowance');
 
     await (a7a5.connect(trader) as any).approve(facadeAddr, A7A5_IN - 1n);
-    const partialMsg = await revertMsg(facade.connect(trader).swapA7A5.staticCall(A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
+    const partialMsg = await revertMsg(facade.connect(trader)['swapA7A5(uint256,uint8,uint256,uint256)'].staticCall(A7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        partial allowance revert: ${partialMsg.slice(0, 80)}`);
     expect(partialMsg).to.contain('InsufficientAllowance');
   });
@@ -295,12 +295,12 @@ describe('allowances', function () {
     const {usdt} = tokens();
 
     expect(await facade.allowanceUSDT(traderAddr)).to.equal(0n);
-    const zeroMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
+    const zeroMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        zero allowance revert:    ${zeroMsg.slice(0, 80)}`);
     expect(zeroMsg).to.contain('InsufficientAllowance');
 
     await (usdt.connect(trader) as any).approve(facadeAddr, USDT_IN - 1n);
-    const partialMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
+    const partialMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
     console.log(`        partial allowance revert: ${partialMsg.slice(0, 80)}`);
     expect(partialMsg).to.contain('InsufficientAllowance');
   });
@@ -317,12 +317,12 @@ describe('allowances', function () {
     expect(wa7a5Bal, 'must have wA7A5').to.be.greaterThan(0n);
 
     expect(await facade.allowanceWA7A5(traderAddr)).to.equal(0n);
-    const zeroMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(wa7a5Bal, SIDE.SELL, 0n, FAR_DEADLINE));
+    const zeroMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(wa7a5Bal, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        zero allowance revert:    ${zeroMsg.slice(0, 80)}`);
     expect(zeroMsg).to.contain('InsufficientAllowance');
 
     await (wa7a5.connect(trader) as any).approve(facadeAddr, wa7a5Bal - 1n);
-    const partialMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(wa7a5Bal, SIDE.SELL, 0n, FAR_DEADLINE));
+    const partialMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(wa7a5Bal, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        partial allowance revert: ${partialMsg.slice(0, 80)}`);
     expect(partialMsg).to.contain('InsufficientAllowance');
   });
@@ -334,7 +334,7 @@ describe('allowances', function () {
     await fundFromWhale(conn, ADDRESSES.USDT, ADDRESSES.USDT_WHALE, traderAddr, USDT_IN);
     await (usdt.connect(trader) as any).approve(facadeAddr, USDT_IN);
     expect(await facade.allowanceUSDT(traderAddr)).to.equal(USDT_IN);
-    const amountOut: bigint = await facade.connect(trader).swapA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE);
+    const amountOut: bigint = await facade.connect(trader)['swapA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE);
     console.log(`        exact allowance (${USDT_IN}) → amountOut = ${amountOut}  ✓`);
     expect(amountOut).to.be.greaterThan(0n);
   });

@@ -49,11 +49,11 @@ const ZERO = '0x0000000000000000000000000000000000000000';
 
 /** True when fork tests should run (MAINNET_FORK set and the address is real). */
 export function forkReady(...addrs: string[]): boolean {
-  const ready = Boolean(process.env.MAINNET_FORK) && addrs.every((a) => a && a !== ZERO);
-  if (process.env.REQUIRE_FORK_TESTS && !ready) {
+  const ready = process.env.MAINNET_FORK === '1' && addrs.every((a) => a && a !== ZERO);
+  if (process.env.REQUIRE_FORK_TESTS === '1' && !ready) {
     throw new Error('Predeploy gate requires MAINNET_FORK=1 and non-zero deployed contract addresses; refusing to silently skip fork coverage');
   }
-  if (process.env.REQUIRE_FORK_TESTS && !process.env.FORK_BLOCK) {
+  if (process.env.REQUIRE_FORK_TESTS === '1' && !process.env.FORK_BLOCK) {
     throw new Error('Predeploy gate requires a pinned FORK_BLOCK; refusing to run fork coverage against latest');
   }
   return ready;

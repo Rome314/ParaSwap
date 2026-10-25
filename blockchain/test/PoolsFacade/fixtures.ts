@@ -3,7 +3,7 @@
 import {ADDRESSES} from '../../common/addresses.js';
 import {V2Pair__factory} from '../../types/ethers-contracts/factories/interfaces/Uniswap.sol/V2Pair__factory.js';
 import type {V2Pair} from '../../types/ethers-contracts/interfaces/Uniswap.sol/V2Pair.js';
-import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.js';
+import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.sol/PoolsFacade.js';
 import {fundFromWhale} from '../helpers.js';
 import {A7A5_IN, conn, ethers, networkHelpers, USDT_IN, WA7A5_IN} from './consts.js';
 import {findBpsSlot, tokens} from './helpers.js';

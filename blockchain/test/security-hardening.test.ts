@@ -373,10 +373,10 @@ describe('PoolsFacade / ParaSwap security (unit)', function () {
       await approve(usdt, trader, facade, UNIT);
 
       const traderAddress = await trader.getAddress();
-      const before = await (a7a5 as any).balanceOf(traderAddress);
+      const before: bigint = await a7a5.balanceOf(traderAddress);
       const expected = await (facade.connect(trader) as any).swapA7A5.staticCall(UNIT, BUY, 0n, DEADLINE);
       await (facade.connect(trader) as any).swapA7A5(UNIT, BUY, expected, DEADLINE);
-      const actual = (await (a7a5 as any).balanceOf(traderAddress)) - before;
+      const actual = (await a7a5.balanceOf(traderAddress)) - before;
       const grossPairOutput = await (pair as any).lastAmount0Out();
 
       expect(actual).to.equal(expected);
@@ -476,11 +476,11 @@ describe('PoolsFacade / ParaSwap security (unit)', function () {
       for (const amount of [1_000n, 100_000n, UNIT, 10n * UNIT]) {
         const quote = await paraSwap.quote.staticCall(await a7a5.getAddress(), await wa7a5.getAddress(), amount, FEE);
         await approve(a7a5, trader, paraSwap, amount);
-        const before = await (wa7a5 as any).balanceOf(traderAddress);
+        const before: bigint = await wa7a5.balanceOf(traderAddress);
         await paraSwap
           .connect(trader)
           ['swap(address,address,uint256,uint256,uint24,uint256)'](await a7a5.getAddress(), await wa7a5.getAddress(), amount, quote, FEE, DEADLINE);
-        const actual = (await (wa7a5 as any).balanceOf(traderAddress)) - before;
+        const actual = (await wa7a5.balanceOf(traderAddress)) - before;
         expect(checkRoundingError(actual, quote)).to.equal(true);
         expect(actual).to.be.closeTo(quote, A7A5_MAX_ROUNDING_ERROR);
       }
@@ -494,13 +494,13 @@ describe('PoolsFacade / ParaSwap security (unit)', function () {
 
       const unwrapQuote = await paraSwap.quote.staticCall(await wa7a5.getAddress(), await a7a5.getAddress(), unwrapAmount, FEE);
       await approve(wa7a5, trader, paraSwap, unwrapAmount);
-      const before = await (a7a5 as any).balanceOf(traderAddress);
+      const before: bigint = await a7a5.balanceOf(traderAddress);
       await paraSwap
         .connect(trader)
         [
           'swap(address,address,uint256,uint256,uint24,uint256)'
         ](await wa7a5.getAddress(), await a7a5.getAddress(), unwrapAmount, unwrapQuote, FEE, DEADLINE);
-      const actual = (await (a7a5 as any).balanceOf(traderAddress)) - before;
+      const actual = (await a7a5.balanceOf(traderAddress)) - before;
       expect(checkRoundingError(actual, unwrapQuote)).to.equal(true);
       expect(actual).to.be.closeTo(unwrapQuote, A7A5_MAX_ROUNDING_ERROR);
     });

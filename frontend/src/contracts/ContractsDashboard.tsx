@@ -38,7 +38,7 @@ export function ContractsDashboard() {
       </header>
 
       <main className="mx-auto max-w-5xl p-4">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as DashTab)}>
+        <Tabs value={tab} onValueChange={(v: string) => setTab(v as DashTab)}>
           <TabsList className="mb-4 flex flex-wrap h-auto gap-1">
             <TabsTrigger value="fork">Fork / Dev</TabsTrigger>
             <TabsTrigger value="tokens">Tokens</TabsTrigger>

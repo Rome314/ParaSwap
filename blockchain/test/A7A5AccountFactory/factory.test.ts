@@ -149,7 +149,7 @@ describe('A7A5AccountFactory', function () {
   });
 
   it('initCode deploys via EntryPoint on a fork', async function () {
-    if (!process.env.MAINNET_FORK) this.skip();
+    if (process.env.MAINNET_FORK !== '1') this.skip();
 
     const {factory, factoryAddr, initCalldata, qx, qy} = await loadFixture(deployFactoryFixture);
     const predicted: string = await (factory as any).predictAddress(initCalldata);

@@ -1,4 +1,4 @@
-type Token @entity {
+type Token @entity(immutable: false) {
   id: ID!
   symbol: String!
   address: Bytes!
@@ -9,7 +9,7 @@ type Token @entity {
   totalLiquidity: BigInt
 }
 
-type A7A5Event @entity {
+type A7A5Event @entity(immutable: true) {
   id: ID!
   token: Token!
   eventType: String!
@@ -20,7 +20,7 @@ type A7A5Event @entity {
   transactionHash: Bytes!
 }
 
-type Transfer @entity {
+type Transfer @entity(immutable: true) {
   id: ID!
   token: Token!
   from: Bytes!
@@ -33,7 +33,7 @@ type Transfer @entity {
   transactionHash: Bytes!
 }
 
-type ParaSwapSwap @entity {
+type ParaSwapSwap @entity(immutable: true) {
   id: ID!
   tokenIn: Bytes!
   tokenOut: Bytes!
@@ -45,7 +45,7 @@ type ParaSwapSwap @entity {
   transactionHash: Bytes!
 }
 
-type PoolsFacadeSwap @entity {
+type PoolsFacadeSwap @entity(immutable: true) {
   id: ID!
   path: String!
   user: Bytes!
@@ -58,7 +58,7 @@ type PoolsFacadeSwap @entity {
   transactionHash: Bytes!
 }
 
-type DailyVolume @entity {
+type DailyVolume @entity(immutable: false) {
   id: ID!
   token: Token!
   date: String!
@@ -67,7 +67,7 @@ type DailyVolume @entity {
   swapCount: BigInt!
 }
 
-type UserSwapStats @entity {
+type UserSwapStats @entity(immutable: false) {
   id: ID!
   user: Bytes!
   swapCount: BigInt!

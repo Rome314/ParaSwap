@@ -132,7 +132,7 @@ export function SwapPanel() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={contract} onValueChange={(v) => setContract(v as 'paraswap' | 'facade')}>
+      <Tabs value={contract} onValueChange={(v: string) => setContract(v as 'paraswap' | 'facade')}>
         <TabsList>
           <TabsTrigger value="paraswap">ParaSwap</TabsTrigger>
           <TabsTrigger value="facade">PoolsFacade</TabsTrigger>

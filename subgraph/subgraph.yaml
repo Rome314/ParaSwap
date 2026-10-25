@@ -20,15 +20,15 @@ dataSources:
         - name: A7A5
           file: ./abis/A7A5.json
       eventHandlers:
-        - event: Issue(indexed address,uint256)
+        - event: Issue(address,uint256)
           handler: handleIssue
-        - event: Burn(indexed address,uint256)
+        - event: Burn(address,uint256)
           handler: handleBurn
-        - event: Blacklisted(indexed address)
+        - event: Blacklisted(address)
           handler: handleBlacklisted
-        - event: DeBlacklisted(indexed address)
+        - event: DeBlacklisted(address)
           handler: handleDeBlacklisted
-        - event: DestroyedBlackFunds(indexed address,uint256)
+        - event: DestroyedBlackFunds(address,uint256)
           handler: handleDestroyedBlackFunds
         - event: TotalLiquidityUpdated(uint256,uint256)
           handler: handleTotalLiquidityUpdated
@@ -102,8 +102,8 @@ dataSources:
         - name: PoolsFacade
           file: ./abis/PoolsFacade.json
       eventHandlers:
-        - event: A7A5Swapped(indexed address,uint8,uint8,uint256,uint256)
+        - event: A7A5Swapped(indexed address,indexed address,uint8,uint8,uint256,uint256)
           handler: handleA7A5Swapped
-        - event: WA7A5Swapped(indexed address,uint8,uint256,uint256)
+        - event: WA7A5Swapped(indexed address,indexed address,uint8,uint256,uint256)
           handler: handleWA7A5Swapped
       file: ./src/pools-facade.ts

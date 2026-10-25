@@ -36,7 +36,7 @@ describe('swapWA7A5', function () {
     });
 
     it('emits WA7A5Swapped on BUY', async () => {
-      await expect(facade.connect(trader).swapWA7A5(USDT_IN, side, 0n, FAR_DEADLINE))
+      await expect(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'](USDT_IN, side, 0n, FAR_DEADLINE))
         .to.emit(facade, 'WA7A5Swapped')
         .withArgs(traderAddr, traderAddr, side, USDT_IN, (value: bigint) => value > 0n);
     });
@@ -46,7 +46,7 @@ describe('swapWA7A5', function () {
 
       const wa7a5Expected = await facade.quoteWA7A5PerUSDT.staticCall(USDT_IN, side);
 
-      const receipt = await (await facade.connect(trader).swapWA7A5(USDT_IN, side, 0n, FAR_DEADLINE)).wait();
+      const receipt = await (await facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'](USDT_IN, side, 0n, FAR_DEADLINE)).wait();
       const wa7a5Gained: bigint = (await wa7a5.balanceOf(traderAddr)) - wa7a5Before;
       const usdtSpent: bigint = usdtBefore - (await usdt.balanceOf(traderAddr));
 
@@ -67,7 +67,7 @@ describe('swapWA7A5', function () {
       console.log('\n  ── swapWA7A5 BUY — vs quote ─────────────────────────');
       const wa7a5Expected: bigint = await facade.quoteWA7A5PerUSDT.staticCall(USDT_IN, side);
 
-      await (await facade.connect(trader).swapWA7A5(USDT_IN, side, 0n, FAR_DEADLINE)).wait();
+      await (await facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'](USDT_IN, side, 0n, FAR_DEADLINE)).wait();
       const usdtSpent: bigint = usdtBefore - (await usdt.balanceOf(traderAddr));
       const wa7a5Gained: bigint = (await wa7a5.balanceOf(traderAddr)) - wa7a5Before;
       const absDiff = abs(wa7a5Gained, wa7a5Expected);
@@ -84,7 +84,7 @@ describe('swapWA7A5', function () {
 
     it('swapWA7A5 BUY: reverts when amountOutMin exceeds achievable wA7A5 output', async () => {
       console.log('\n  ── swapWA7A5 BUY — amountOutMin too high ────────────');
-      const msg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(USDT_IN, side, ethers.MaxUint256, FAR_DEADLINE));
+      const msg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, side, ethers.MaxUint256, FAR_DEADLINE));
       console.log(`        revert msg: ${msg.slice(0, 80)}`);
       expect(msg.length, 'must revert with non-empty message').to.be.greaterThan(0);
     });
@@ -94,7 +94,7 @@ describe('swapWA7A5', function () {
       const wa7a5Expected: bigint = await facade.quoteWA7A5PerUSDT.staticCall(USDT_IN, side);
       const saneMin: bigint = (wa7a5Expected * 90n) / 100n;
 
-      const receipt = await (await facade.connect(trader).swapWA7A5(USDT_IN, side, saneMin, FAR_DEADLINE)).wait();
+      const receipt = await (await facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'](USDT_IN, side, saneMin, FAR_DEADLINE)).wait();
       const wa7a5Gained: bigint = (await wa7a5.balanceOf(traderAddr)) - wa7a5Before;
 
       console.log(`        expected        ${formatUnits6(wa7a5Expected)} wA7A5`);
@@ -125,7 +125,7 @@ describe('swapWA7A5', function () {
       console.log('\n  ── swapWA7A5 SELL — basic ───────────────────────────');
 
       const usdtExpected = await facade.quoteWA7A5PerUSDT.staticCall(TO_SELL, side);
-      const receipt = await (await facade.connect(trader).swapWA7A5(TO_SELL, side, 0n, FAR_DEADLINE)).wait();
+      const receipt = await (await facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'](TO_SELL, side, 0n, FAR_DEADLINE)).wait();
 
       const usdtGained: bigint = (await usdt.balanceOf(traderAddr)) - usdtBefore;
       const wa7a5Spent: bigint = wa7a5Before - (await wa7a5.balanceOf(traderAddr));
@@ -147,7 +147,7 @@ describe('swapWA7A5', function () {
       console.log('\n  ── swapWA7A5 SELL — vs quote ────────────────────────');
       const usdtExpected: bigint = await facade.quoteWA7A5PerUSDT.staticCall(TO_SELL, side);
 
-      await (await facade.connect(trader).swapWA7A5(TO_SELL, side, 0n, FAR_DEADLINE)).wait();
+      await (await facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'](TO_SELL, side, 0n, FAR_DEADLINE)).wait();
 
       const usdtGained: bigint = (await usdt.balanceOf(traderAddr)) - usdtBefore;
       const wa7a5Spent: bigint = wa7a5Before - (await wa7a5.balanceOf(traderAddr));
@@ -222,8 +222,8 @@ describe('swapWA7A5', function () {
   it("swapWA7A5: reverts 'zero amountIn' when called with amountIn == 0", async () => {
     console.log('\n  ── swapWA7A5 — zero amountIn ────────────────────────');
     const {facade, trader} = await loadFixture(deployFacadeFixture);
-    const buyMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(0n, SIDE.BUY, 0n, FAR_DEADLINE));
-    const sellMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(0n, SIDE.SELL, 0n, FAR_DEADLINE));
+    const buyMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(0n, SIDE.BUY, 0n, FAR_DEADLINE));
+    const sellMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(0n, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        BUY revert msg:  ${buyMsg.slice(0, 80)}`);
     console.log(`        SELL revert msg: ${sellMsg.slice(0, 80)}`);
     expect(buyMsg).to.contain('ZeroAmountIn');
@@ -233,8 +233,8 @@ describe('swapWA7A5', function () {
   it("swapWA7A5: reverts 'expired' when deadline is in the past", async () => {
     console.log('\n  ── swapWA7A5 — expired deadline ─────────────────────');
     const {facade, trader} = await loadFixture(deployFacadeFixture);
-    const buyMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, PAST_DEADLINE));
-    const sellMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(WA7A5_IN, SIDE.SELL, 0n, PAST_DEADLINE));
+    const buyMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, SIDE.BUY, 0n, PAST_DEADLINE));
+    const sellMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(WA7A5_IN, SIDE.SELL, 0n, PAST_DEADLINE));
     console.log(`        BUY revert msg:  ${buyMsg.slice(0, 80)}`);
     console.log(`        SELL revert msg: ${sellMsg.slice(0, 80)}`);
     expect(buyMsg).to.contain('Expired');
@@ -244,8 +244,8 @@ describe('swapWA7A5', function () {
   it("swapWA7A5: reverts 'insufficient allowance' when caller has no token approval", async () => {
     console.log('\n  ── swapWA7A5 — no approval ──────────────────────────');
     const {facade, trader} = await loadFixture(deployFacadeFixture);
-    const buyMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
-    const sellMsg = await revertMsg(facade.connect(trader).swapWA7A5.staticCall(WA7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
+    const buyMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(USDT_IN, SIDE.BUY, 0n, FAR_DEADLINE));
+    const sellMsg = await revertMsg(facade.connect(trader)['swapWA7A5(uint256,uint8,uint256,uint256)'].staticCall(WA7A5_IN, SIDE.SELL, 0n, FAR_DEADLINE));
     console.log(`        BUY revert msg:  ${buyMsg.slice(0, 80)}`);
     console.log(`        SELL revert msg: ${sellMsg.slice(0, 80)}`);
     expect(buyMsg).to.contain('InsufficientAllowance');

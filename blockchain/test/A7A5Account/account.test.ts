@@ -277,7 +277,7 @@ describe('A7A5Account (unit)', function () {
       const ownerBefore = await ethers.provider.getBalance(ownerWallet.address);
       const tx = await (account as any).connect(ownerWallet).withdrawNative(ethers.parseEther('0.5'));
       const receipt = await tx.wait();
-      const gasCost = receipt.gasUsed * receipt.gasPrice;
+      const gasCost = BigInt(receipt.gasUsed) * BigInt(receipt.gasPrice);
       const ownerAfter = await ethers.provider.getBalance(ownerWallet.address);
       expect(ownerAfter).to.be.closeTo(ownerBefore + ethers.parseEther('0.5') - gasCost, ethers.parseEther('0.001'));
     });
@@ -395,7 +395,7 @@ describe('A7A5Account (unit)', function () {
       const nft = await ethers.deployContract('MockERC1155');
       await nft.waitForDeployment();
       await (await nft.mint(deployer.address, 3n, 100n)).wait();
-      await (await nft['safeTransferFrom(address,address,uint256,uint256,bytes)'](deployer.address, accountAddr, 3n, 50n, '0x')).wait();
+      await (await nft.safeTransferFrom(deployer.address, accountAddr, 3n, 50n, '0x')).wait();
       expect(await nft.balanceOf(accountAddr, 3n)).to.equal(50n);
     });
   });

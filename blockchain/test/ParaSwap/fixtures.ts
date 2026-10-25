@@ -3,8 +3,8 @@ import {fundFromWhale} from '../helpers.js';
 import {conn, ethers, networkHelpers, USDT_IN, WA7A5_IN, USDC_IN, WETH_IN} from './consts.js';
 import {IA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IA7A5__factory.js';
 import {IWA7A5__factory} from '../../types/ethers-contracts/factories/interfaces/IA7A5.sol/IWA7A5__factory.js';
-import type {ParaSwap} from '../../types/ethers-contracts/ParaSwap.js';
-import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.js';
+import type {ParaSwap} from '../../types/ethers-contracts/ParaSwap.sol/ParaSwap.js';
+import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.sol/PoolsFacade.js';
 
 // ── FOT helpers ───────────────────────────────────────────────────────────────
 

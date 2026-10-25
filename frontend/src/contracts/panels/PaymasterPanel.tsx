@@ -133,7 +133,7 @@ export function PaymasterPanel() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={tab} onValueChange={(v) => setTab(v as 'a7a5' | 'usdt')}>
+      <Tabs value={tab} onValueChange={(v: string) => setTab(v as 'a7a5' | 'usdt')}>
         <TabsList>
           <TabsTrigger value="a7a5">A7A5 Paymaster</TabsTrigger>
           <TabsTrigger value="usdt">USDT Paymaster</TabsTrigger>

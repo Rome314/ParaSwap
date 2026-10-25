@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "211f6cac64c50f23e7a3816422c629dbef0f5a70",
+  "branch": "codex/project-harness",
+  "evidence_kind": "deterministic local commands, mocked tooling tests, and source review; no live model benchmark or live chain acceptance",
+  "baseline": {
+    "original_checkout_manifest_read": {
+      "command": "bounded subprocess read of blockchain/package.json",
+      "result": "timeout",
+      "timeout_seconds": 3
+    },
+    "cursor_worktrees": {
+      "count": 3,
+      "result": "invalid git pointers to deleted /Users/rome/coding/para-swap"
+    },
+    "npm_ci_dry_run": {
+      "exit_code": 1,
+      "error": "EUSAGE: lock tsx 4.22.4 does not satisfy declared range"
+    },
+    "frontend_production_build": {
+      "exit_code": 1,
+      "error": "ethers constants export absent in inconsistent historical dependency tree"
+    },
+    "credential_free_contract_tests": {
+      "exit_code": 1,
+      "fork_dependent_quote_failures": 13
+    }
+  },
+  "candidate": {
+    "clean_install": {
+      "command": "npm ci --no-audit --no-fund",
+      "exit_code": 0,
+      "postinstall_dependency_patching": false
+    },
+    "composed_check": {
+      "command": "npm run check",
+      "exit_code": 0,
+      "seconds": 24.38,
+      "contract_tests": {
+        "passing": [
+          "156"
+        ],
+        "pending": [
+          "82"
+        ]
+      }
+    },
+    "harness_tests": {
+      "python_passed": 7,
+      "node_passed": 2
+    },
+    "required_fork_gate_negative_cases": [
+      {
+        "case": "missing_rpc",
+        "exit_code": 1,
+        "expected_rejection_observed": true
+      },
+      {
+        "case": "missing_block",
+        "exit_code": 1,
+        "expected_rejection_observed": true
+      }
+    ],
+    "inherited_environment_probe": {
+      "case": "local_profile_with_inherited_fork_and_network_selection",
+      "exit_code": 0,
+      "passing": [
+        "156"
+      ],
+      "pending": [
+        "82"
+      ]
+    },
+    "frontend_dependency_prebundle": {
+      "exit_code": 0,
+      "command": "npm exec -w para-swap-frontend --no -- vite optimize --force",
+      "note": "One-time diagnostic only; CLI marks manual optimization deprecated"
+    },
+    "go_checks": {
+      "test_exit_code": 0,
+      "vet_exit_code": 0,
+      "behavioral_test_files": 0
+    },
+    "active_git_worktrees": 1,
+    "solidity_product_source_diff": false,
+    "entry_document_links": {
+      "checked": 17,
+      "missing": 0
+    }
+  },
+  "limits": [
+    "82 fork-dependent test cases remain pending; no operator RPC was used",
+    "Browser wallet/passkey/bundler/Tron and production routing acceptance not performed",
+    "Docker and GitHub CI execution not validated",
+    "npm ls reports vendor peer disagreements for wagmi core, zod, and React; transitive relayer engine/deprecation warnings remain",
+    "Original cloud-only local Git history is preserved but not imported into the active database"
+  ],
+  "cleanup": {
+    "verified": true,
+    "removed_task_scratch_and_intermediate_outputs": [
+      "frontend/dist",
+      "subgraph/build",
+      "subgraph/generated",
+      "blockchain/artifacts",
+      "blockchain/cache",
+      "frontend/node_modules/.vite",
+      "frontend/node_modules/.vite-temp",
+      "node_modules/.vite-temp",
+      "subgraph/abis/A7A5.json",
+      "subgraph/abis/WA7A5.json",
+      "subgraph/abis/ParaSwap.json",
+      "subgraph/abis/PoolsFacade.json",
+      "frontend/tsconfig.tsbuildinfo",
+      ".harness2/check.log",
+      ".harness2/check-result.json",
+      ".harness2/fork-gates.json",
+      ".harness2/local-profile.json"
+    ],
+    "scratch_lock_directory_removed": true,
+    "preserved_runtime_dependencies_and_generated_editor_bindings": true,
+    "all_recovery_snapshots_present": true,
+    "task_cli_processes_remaining": []
+  }
+}

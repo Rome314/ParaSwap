@@ -1,6 +1,6 @@
 import {buildModule} from '@nomicfoundation/hardhat-ignition/modules';
-import {SEPOLIA_ADDRESSES} from '../../common/addresses-sepolia.js';
-import SepoliaOracleStack from './SepoliaOracleStack.js';
+import {SEPOLIA_ADDRESSES} from '../../../common/addresses-sepolia.ts';
+import SepoliaOracleStack from './OracleStack.ts';
 
 export default buildModule('SepoliaPaymasters', (m) => {
   const owner = m.getAccount(0);

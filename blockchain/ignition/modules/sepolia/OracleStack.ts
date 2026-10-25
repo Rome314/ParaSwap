@@ -1,5 +1,5 @@
 import {buildModule} from '@nomicfoundation/hardhat-ignition/modules';
-import SepoliaMocks from './SepoliaMocks.js';
+import SepoliaMocks from './Mocks.ts';
 
 const DEFAULT_MAX_STALENESS = 2 * 24 * 60 * 60;
 

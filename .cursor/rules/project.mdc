@@ -1,0 +1,10 @@
+---
+description: Shared A7A5 Swap project instructions
+alwaysApply: true
+---
+
+Read and follow `AGENTS.md` at the repository root and the `AGENTS.md` in the package
+being changed. Run `python3 scripts/preflight.py` before opening project files or
+running Git/npm; unavailable cloud files must be restored first. Read `docs/PROJECT_MAP.md`
+and `docs/COMMANDS.md` for navigation and verification. Keep project rules in those
+canonical files rather than duplicating them here.

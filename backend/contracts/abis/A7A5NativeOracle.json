@@ -32,6 +32,11 @@
   },
   {
     "inputs": [],
+    "name": "A7A5NativeOracle__IncompleteRound",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "A7A5NativeOracle__InvalidPrice",
     "type": "error"
   },
@@ -65,6 +70,11 @@
       }
     ],
     "name": "A7A5NativeOracle__StalenessTooLow",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "A7A5NativeOracle__ZeroAddress",
     "type": "error"
   },
   {

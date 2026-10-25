@@ -62,6 +62,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "A7A5UsdtTwapOracle__ZeroAddress",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",

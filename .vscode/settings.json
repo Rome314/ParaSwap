@@ -1,5 +1,6 @@
 {
-  // Language servers: use each package's TypeScript (blockchain/ or frontend/)
+  // Use the same pinned workspace TypeScript as the root verification commands.
+  "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.preferences.includePackageJsonAutoImports": "on",
   "typescript.suggest.autoImports": true,

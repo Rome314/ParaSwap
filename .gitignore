@@ -11,18 +11,30 @@ backend/server
 *.test
 
 # Hardhat 3
-contracts/cache/
-contracts/artifacts/
-contracts/.hardhat/
+blockchain/cache/
+blockchain/artifacts/
+blockchain/types/
+blockchain/.hardhat/
+blockchain/coverage/
 
 # Env
-.env
-.env.local
+.env*
+!.env.example
+!.env.*.example
 
-.agents/
-.claude/
-.cursor/
+# Machine-local agent state; shared project guidance remains tracked.
+.agents/skills/
+.claude/settings.local.json
+.claude/worktrees/
+.cursor/worktrees/
+.cursor/*.log
 .skills-lock.json
+.pnpm-store/
+*.tsbuildinfo
+subgraph/generated/
+subgraph/build/
+subgraph/abis/*.json
 
 # Python
 .venv/
+__pycache__/

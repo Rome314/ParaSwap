@@ -284,10 +284,23 @@
   },
   {
     "inputs": [],
+    "name": "gasToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "oracle",
     "outputs": [
       {
-        "internalType": "contract A7A5NativeOracle",
+        "internalType": "address",
         "name": "",
         "type": "address"
       }

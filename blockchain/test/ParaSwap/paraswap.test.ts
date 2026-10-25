@@ -15,12 +15,12 @@ import {
 } from './consts.js';
 import {deployParaSwapFixture, fundedFixture, fotFixture} from './fixtures.js';
 import {ADDRESSES} from '../../common/addresses.js';
-import type {ParaSwap} from '../../types/ethers-contracts/ParaSwap.js';
+import type {ParaSwap} from '../../types/ethers-contracts/ParaSwap.sol/ParaSwap.js';
 import type {PoolsFacade} from '../../types/ethers-contracts/PoolsFacade.sol/PoolsFacade.js';
 import type {HardhatEthersSigner} from '@nomicfoundation/hardhat-ethers/types';
 import {tokens, gasReport, fetchEthPrice} from './helpers.js';
 import type {IA7A5} from '../../types/ethers-contracts/interfaces/IA7A5.sol/IA7A5.js';
-import type {IWA7A5} from '../../types/ethers-contracts/ParaSwap.sol/IWA7A5.js';
+import type {IWA7A5} from '../../types/ethers-contracts/interfaces/IA7A5.sol/IWA7A5.js';
 import {abs, formatUnits6, formatUnits18, forkReady, checkRoundingError, A7A5_MAX_ROUNDING_ERROR} from '../helpers.js';
 
 // ── Global ETH/USD price for gas display ─────────────────────────────────────
@@ -55,7 +55,7 @@ describe('ParaSwap', function () {
   let usdc: IA7A5;
   let a7a5: IA7A5;
   let wa7a5: IWA7A5;
-  let weth: IWA7A5;
+  let weth: IA7A5;
 
   let usdtBalanceBefore: bigint;
   let usdcBalanceBefore: bigint;
@@ -81,7 +81,7 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, NO_FEE);
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, quoted, traderAddr);
@@ -109,7 +109,7 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, NO_FEE);
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx)
@@ -139,7 +139,7 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.WA7A5, ADDRESSES.USDT, wa7a5Balance, V3_FEE_WA7A5);
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WA7A5, ADDRESSES.USDT, wa7a5Balance, 0n, V3_FEE_WA7A5, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WA7A5, ADDRESSES.USDT, wa7a5Balance, 0n, V3_FEE_WA7A5, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.WA7A5, ADDRESSES.USDT, wa7a5Balance, quoted, traderAddr);
@@ -165,7 +165,7 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDT, ADDRESSES.WA7A5, USDT_IN, V3_FEE_WA7A5);
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDT, ADDRESSES.WA7A5, USDT_IN, 0n, V3_FEE_WA7A5, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.WA7A5, USDT_IN, 0n, V3_FEE_WA7A5, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.USDT, ADDRESSES.WA7A5, USDC_IN, quoted, traderAddr);
@@ -191,7 +191,7 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, V3_FEE_USDC);
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, quoted, traderAddr);
@@ -245,7 +245,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, quoted, traderAddr);
 
@@ -282,7 +282,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(a7a5AfterFot).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx)
@@ -321,7 +321,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WA7A5, ADDRESSES.USDC, wa7a5Balance, 0n, V3_FEE_USDC, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WA7A5, ADDRESSES.USDC, wa7a5Balance, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.WA7A5, ADDRESSES.USDC, wa7a5BalanceBefore, quoted, traderAddr);
@@ -355,7 +355,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(wa7a5Out).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDC, ADDRESSES.WA7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDC, ADDRESSES.WA7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.USDC, ADDRESSES.WA7A5, USDC_IN, quoted, traderAddr);
@@ -392,7 +392,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, quoted, traderAddr);
@@ -429,7 +429,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(a7a5AfterFot).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx)
@@ -466,7 +466,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(leg2).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WA7A5, ADDRESSES.WETH, wa7a5Balance, 0n, V3_FEE_WETH, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WA7A5, ADDRESSES.WETH, wa7a5Balance, 0n, V3_FEE_WETH, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.WA7A5, ADDRESSES.WETH, wa7a5Balance, quoted, traderAddr);
@@ -500,7 +500,7 @@ describe('ParaSwap', function () {
       console.log(`    USDT intermediate  ${formatUnits6(usdtMid)}`);
       expect(wa7a5Out).to.equal(quoted, 'leg1+leg2 composition should match full quote');
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WETH, ADDRESSES.WA7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WETH, ADDRESSES.WA7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx).to.emit(paraSwap, 'Swapped').withArgs(ADDRESSES.WETH, ADDRESSES.WA7A5, WETH_IN, quoted, traderAddr);
@@ -558,7 +558,7 @@ describe('ParaSwap', function () {
 
       // const effectiveIn: bigint = await facade.getA7A5EffectiveOutput(A7A5_IN);
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, NO_FEE);
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.USDT, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
       const usdtGained = (await usdt.balanceOf(traderAddr)) - usdtBalanceBefore;
 
@@ -584,7 +584,7 @@ describe('ParaSwap', function () {
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, NO_FEE);
 
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
@@ -611,7 +611,7 @@ describe('ParaSwap', function () {
 
       const usdcBefore = await usdc.balanceOf(traderAddr);
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, V3_FEE_USDC);
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.USDC, A7A5_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx)
@@ -638,7 +638,7 @@ describe('ParaSwap', function () {
       expect(await usdc.allowance(traderAddr, paraSwapAddr)).to.equal(USDC_IN, 'allowance must be set');
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, V3_FEE_USDC);
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDC, ADDRESSES.A7A5, USDC_IN, 0n, V3_FEE_USDC, FAR_DEADLINE);
       const receipt = await tx.wait();
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
@@ -665,7 +665,7 @@ describe('ParaSwap', function () {
       expect(await a7a5.allowance(traderAddr, paraSwapAddr)).to.equal(A7A5_IN, 'allowance must be set');
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, V3_FEE_WETH);
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
       const receipt = await tx.wait();
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
@@ -691,7 +691,7 @@ describe('ParaSwap', function () {
       expect(await weth.allowance(traderAddr, paraSwapAddr)).to.equal(WETH_IN, 'allowance must be set');
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, V3_FEE_WETH);
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, 0n, V3_FEE_WETH, FAR_DEADLINE);
       const receipt = await tx.wait();
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
@@ -720,7 +720,7 @@ describe('ParaSwap', function () {
       expect(await a7a5.allowance(traderAddr, paraSwapAddr)).to.equal(A7A5_IN, 'allowance must be set');
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, NO_FEE);
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.WA7A5, A7A5_IN, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
 
       await expect(tx)
@@ -750,7 +750,7 @@ describe('ParaSwap', function () {
       expect(await wa7a5.allowance(traderAddr, paraSwapAddr)).to.equal(wa7a5Balance, 'allowance must be set');
 
       const quoted = await paraSwap.connect(trader).quote.staticCall(ADDRESSES.WA7A5, ADDRESSES.A7A5, wa7a5Balance, NO_FEE);
-      const tx = await paraSwap.connect(trader).swap(ADDRESSES.WA7A5, ADDRESSES.A7A5, wa7a5Balance, 0n, NO_FEE, FAR_DEADLINE);
+      const tx = await paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WA7A5, ADDRESSES.A7A5, wa7a5Balance, 0n, NO_FEE, FAR_DEADLINE);
       const receipt = await tx.wait();
       await expect(tx)
         .to.emit(paraSwap, 'Swapped')
@@ -784,14 +784,14 @@ describe('ParaSwap', function () {
     });
 
     it('reverts ParaSwap__ZeroAmountIn when amountIn = 0', async function () {
-      await expect(paraSwap.connect(trader).swap(ADDRESSES.USDT, ADDRESSES.A7A5, 0n, 0n, NO_FEE, FAR_DEADLINE)).to.be.revertedWithCustomError(
+      await expect(paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.A7A5, 0n, 0n, NO_FEE, FAR_DEADLINE)).to.be.revertedWithCustomError(
         paraSwap,
         'ParaSwap__ZeroAmountIn',
       );
     });
 
     it('reverts ParaSwap__Expired when deadline is in the past', async function () {
-      await expect(paraSwap.connect(trader).swap(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, PAST_DEADLINE)).to.be.revertedWithCustomError(
+      await expect(paraSwap.connect(trader)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, PAST_DEADLINE)).to.be.revertedWithCustomError(
         paraSwap,
         'ParaSwap__Expired',
       );
@@ -802,7 +802,7 @@ describe('ParaSwap', function () {
       const {usdt} = tokens();
       expect(await usdt.balanceOf(tAddr)).to.be.gte(USDT_IN, 'trader must hold USDT_IN');
       expect(await usdt.allowance(tAddr, await ps.getAddress())).to.equal(0n, 'no approval should be set');
-      await expect(ps.connect(t).swap(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, FAR_DEADLINE)).to.be.revertedWithCustomError(
+      await expect(ps.connect(t)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, 0n, NO_FEE, FAR_DEADLINE)).to.be.revertedWithCustomError(
         ps,
         'ParaSwap__InsufficientAllowance',
       );
@@ -815,7 +815,7 @@ describe('ParaSwap', function () {
       await tokens(t).usdt.approve(psAddr, USDT_IN);
       expect(await usdt.allowance(tAddr, psAddr)).to.equal(USDT_IN, 'allowance must be set');
       await expect(
-        ps.connect(t).swap(ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, ethers.MaxUint256, NO_FEE, FAR_DEADLINE),
+        ps.connect(t)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.A7A5, USDT_IN, ethers.MaxUint256, NO_FEE, FAR_DEADLINE),
       ).to.be.revertedWithCustomError(ps, 'ParaSwap__InsufficientOutput');
     });
 
@@ -826,7 +826,7 @@ describe('ParaSwap', function () {
       await tokens(t).usdt.approve(psAddr, USDT_IN);
       expect(await usdt.allowance(tAddr, psAddr)).to.equal(USDT_IN, 'allowance must be set');
       await expect(
-        ps.connect(t).swap(ADDRESSES.USDT, ADDRESSES.WA7A5, USDT_IN, ethers.MaxUint256, V3_FEE_WA7A5, FAR_DEADLINE),
+        ps.connect(t)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDT, ADDRESSES.WA7A5, USDT_IN, ethers.MaxUint256, V3_FEE_WA7A5, FAR_DEADLINE),
       ).to.be.revertedWithCustomError(ps, 'ParaSwap__InsufficientOutput');
     });
 
@@ -836,7 +836,7 @@ describe('ParaSwap', function () {
       expect(await usdc.balanceOf(tAddr)).to.be.gte(USDC_IN, 'trader must hold USDC_IN');
       await tokens(t).usdc.approve(psAddr, USDC_IN);
       expect(await usdc.allowance(tAddr, psAddr)).to.equal(USDC_IN, 'allowance must be set');
-      await expect(ps.connect(t).swap(ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, ethers.MaxUint256, V3_FEE_USDC, FAR_DEADLINE)).to.revert(ethers);
+      await expect(ps.connect(t)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.USDC, ADDRESSES.USDT, USDC_IN, ethers.MaxUint256, V3_FEE_USDC, FAR_DEADLINE)).to.revert(ethers);
     });
 
     it('reverts ParaSwap__InsufficientOutput when amountOutMin exceeds actual output (A7A5→WETH sell)', async function () {
@@ -846,7 +846,7 @@ describe('ParaSwap', function () {
       await tokens(t).a7a5.approve(psAddr, A7A5_IN);
       expect(await a7a5.allowance(tAddr, psAddr)).to.equal(A7A5_IN, 'allowance must be set');
       await expect(
-        ps.connect(t).swap(ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, ethers.MaxUint256, V3_FEE_WETH, FAR_DEADLINE),
+        ps.connect(t)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.A7A5, ADDRESSES.WETH, A7A5_IN, ethers.MaxUint256, V3_FEE_WETH, FAR_DEADLINE),
       ).to.be.revertedWithCustomError(ps, 'ParaSwap__InsufficientOutput');
     });
 
@@ -857,7 +857,7 @@ describe('ParaSwap', function () {
       await tokens(t).weth.approve(psAddr, WETH_IN);
       expect(await weth.allowance(tAddr, psAddr)).to.equal(WETH_IN, 'allowance must be set');
       await expect(
-        ps.connect(t).swap(ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, ethers.MaxUint256, V3_FEE_WETH, FAR_DEADLINE),
+        ps.connect(t)['swap(address,address,uint256,uint256,uint24,uint256)'](ADDRESSES.WETH, ADDRESSES.A7A5, WETH_IN, ethers.MaxUint256, V3_FEE_WETH, FAR_DEADLINE),
       ).to.be.revertedWithCustomError(ps, 'ParaSwap__InsufficientOutput');
     });
   });
