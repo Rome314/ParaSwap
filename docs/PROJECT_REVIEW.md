@@ -85,8 +85,25 @@ Other product findings above are source-review findings, not executed wallet tra
 - Wallets, real passkeys, bundlers, TronLink, quotes, swaps, ownership acceptance, and
   indexer replay: no live acceptance performed.
 - Go: compilation/static analysis only; behavioral tests do not yet exist.
-- CI: workflow prepared locally; no GitHub run or publication performed.
+- CI: workflow is published on `codex/project-harness`; no GitHub Actions run was observed.
 - Original cloud-only local Git history: preserved, not imported; see recovery guide.
 
 Keep future progress in this project record and the relevant owning guide. Do not
 copy changing status into global agent instructions or global memory.
+
+## Handoff review — 2026-10-26
+
+- The recovered work was committed as `c911f2d` on `codex/project-harness` and pushed
+  to `origin/codex/project-harness`; the local branch now tracks that remote branch.
+- The active Git database has one registered worktree. After fetching, `master`,
+  `feature/aa-test`, `feature/subgraph-and-backend`, and `feat/contracts-polishing`
+  were ancestors of the active branch, so no remote branch commits were missing.
+- Recovery snapshots `cursor-3zj9` and `cursor-g5j2` passed metadata preflight;
+  `cursor-qsb3` has no source placeholders but lacks required workspace manifests.
+  The original cloud-managed checkout remains blocked by missing files and source/Git
+  placeholders and was left untouched. The old `A7A5_multirouter.ts` example in two
+  snapshots references a contract absent from the active tree, so it was not merged.
+- A fresh `npm run check` passed the preflight and harness portion (7 Python and 2 Node
+  tests), then stopped at Hardhat compilation with `HHE905` because the compiler
+  version list could not be downloaded. The complete green run recorded above remains
+  the last full local check; fork-dependent and live acceptance limits are unchanged.

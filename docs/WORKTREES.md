@@ -1,8 +1,9 @@
 # Worktree recovery — 2026-10-24
 
 Use `/Users/rome/Documents/Projects/coding/para-swap` on `codex/project-harness`.
-The active Git database starts at remote commit
-`211f6cac64c50f23e7a3816422c629dbef0f5a70` (`feat/contracts-polishing`).
+The branch is published as `origin/codex/project-harness` and was restored from
+remote commit `211f6cac64c50f23e7a3816422c629dbef0f5a70`
+(`origin/feat/contracts-polishing`).
 
 The supplied Cursor directory contained three checkouts whose `.git` pointers still
 referenced deleted `/Users/rome/coding/para-swap`. Git reported invalid repositories.
