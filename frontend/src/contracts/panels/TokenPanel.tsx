@@ -128,7 +128,7 @@ export function TokenPanel() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={token} onValueChange={(v) => setToken(v as 'a7a5' | 'wa7a5')}>
+      <Tabs value={token} onValueChange={(v: string) => setToken(v as 'a7a5' | 'wa7a5')}>
         <TabsList>
           <TabsTrigger value="a7a5">A7A5 Token</TabsTrigger>
           <TabsTrigger value="wa7a5">WA7A5 Token</TabsTrigger>

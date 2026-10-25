@@ -139,7 +139,7 @@ export function OraclePanel() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={tab} onValueChange={(v) => setTab(v as OracleTab)}>
+      <Tabs value={tab} onValueChange={(v: string) => setTab(v as OracleTab)}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="a7a5-native">A7A5 Native</TabsTrigger>
           <TabsTrigger value="a7a5-twap">A7A5/USDT TWAP</TabsTrigger>

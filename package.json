@@ -17,7 +17,8 @@
     "subgraph:deploy": "npm run deploy:studio -w para-swap-subgraph"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3"
+    "@types/node": "^25.9.3",
+    "vite": "^7.0.0"
   },
   "overrides": {
     "undici": "$undici",

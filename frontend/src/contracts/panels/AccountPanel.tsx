@@ -131,7 +131,7 @@ export function AccountPanel() {
 
   return (
     <div className="space-y-4">
-      <Tabs value={tab} onValueChange={(v) => setTab(v as AccountTab)}>
+      <Tabs value={tab} onValueChange={(v: string) => setTab(v as AccountTab)}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="factory">Account Factory</TabsTrigger>
           <TabsTrigger value="webauthn">WebAuthn Account</TabsTrigger>
