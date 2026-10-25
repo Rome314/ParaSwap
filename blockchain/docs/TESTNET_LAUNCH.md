@@ -139,6 +139,18 @@ Swap stack smoke tests apply only on **mainnet fork** or after a future Sepolia 
 3. Configure bundler URL (`VITE_BUNDLER_URL`) for real ERC-4337 on Sepolia.
 4. Mainnet swap UI still reads live pools; Sepolia users should see copy that **swap is mainnet-only** until SwapStack ships on testnet.
 
+## Local mainnet-fork QA (Anvil)
+
+One-shot background cycle (Anvil on `:8545`, deploy AA stack, unit tests, cast smoke, backend health):
+
+```bash
+cd blockchain && npm run qa:local
+```
+
+Artifacts: `/opt/cursor/artifacts/qa-summary.md`, `qa-deployed-addresses.json`, `frontend/.env.qa.local`.
+
+Requires Foundry (`foundryup`). Uses a **recent** fork block automatically (public RPC archive limits). In-process EDR fork tests are skipped by default; set `QA_SKIP_EDR_FORK=0` and `ALCHEMY_API_KEY` for the full fork gate.
+
 ## Quick command reference
 
 ```bash

@@ -22,7 +22,7 @@ import {signUserOpHashWebAuthn, testP256PublicKey} from '../test/A7A5WebAuthnAcc
 const conn = await network.create('localhost');
 const {ethers} = conn;
 
-const TWAP_WINDOW = 60;
+const TWAP_WINDOW = 300; // >= A7A5UsdtTwapOracle.MIN_TWAP_WINDOW (5 minutes)
 const MAX_STALENESS = 2 * 24 * 60 * 60;
 const A7A5_FUNDING = 5_000_000_000n;
 const A7A5_SWAP_IN = 1_000_000_000n;
@@ -55,7 +55,11 @@ async function impersonate(addr: string) {
   // ganache-fork.cjs unlockedAccounts so the call is a no-op there (error silently ignored).
   try {
     await (ethers.provider as any).send('hardhat_impersonateAccount', [addr]);
-  } catch {}
+  } catch {
+    try {
+      await (ethers.provider as any).send('anvil_impersonateAccount', [addr]);
+    } catch {}
+  }
   return (ethers.provider as any).getSigner(addr);
 }
 async function fundFromWhale(token: string, whale: string, to: string, amount: bigint) {
@@ -249,15 +253,18 @@ async function main() {
     },
     signUserOpHashWebAuthn,
   );
-  await (entryPoint as any).connect(bundler).handleOps([a7a5Op], owner);
+  await (await (entryPoint as any).connect(bundler).handleOps([a7a5Op], owner)).wait();
   logStep('A7A5-gas swap demo complete');
 
   logStep('Running USDT-gas sponsored swap demo');
+  const accountNonce = await entryPoint.getNonce(accountAddr, 0n);
+  logStep('Account nonce before USDT op', accountNonce.toString());
   const usdtOp = await buildWebAuthnSignedUserOp(
     ethers as any,
     entryPoint as any,
     {
       sender: accountAddr,
+      nonce: accountNonce,
       callData: buildSwapCallData(paraSwapAddr, ADDRESSES.USDT, ADDRESSES.A7A5, USDT_SWAP_IN),
       paymaster: addresses.usdtPaymaster,
     },

@@ -30,7 +30,8 @@
         "lint:slither:high": "rm -f slither-report.sarif && slither . --config-file slither.config.json --exclude medium --exclude low --exclude informational",
         "audit": "pnpm format:check && pnpm lint:sol && pnpm build && pnpm test:coverage && pnpm lint:slither",
         "storage-layout": "pnpm exec hardhat compile && pnpm exec hardhat storage-layout",
-        "test:gas": "REPORT_GAS=true pnpm exec hardhat test mocha --require ./test/gas-reporter-setup.ts"
+        "test:gas": "REPORT_GAS=true pnpm exec hardhat test mocha --require ./test/gas-reporter-setup.ts",
+        "qa:local": "bash scripts/qa-full-cycle.sh"
     },
     "dependencies": {
         "@openzeppelin/community-contracts": "github:OpenZeppelin/openzeppelin-community-contracts#f7e5f08e8fd42023084eb41f4a992d7be897b915",
